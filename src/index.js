@@ -1,14 +1,10 @@
-import { Client, GatewayIntentBits } from 'discord.js';
 import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
+import { client } from './bot';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const TOKEN = process.env.DISCORD_TOKEN;
-const CHANNEL_ID = process.env.CHANNEL_ID;
-const WALLET_ADDRESS = process.env.WALLET_ADDRESS;
-const NETWORK = 'mainnet-beta';
-
+// Watched DEX Programs
 const DEX_PROGRAM_IDS = {
   JUPITER: 'JUP6ivLEzfRyir16JMq1o1w8WywjYsFnE6HAx5TyZnd',
   JUPITER_V6: 'JUP6LiYdsyVJBTY7S4XxNBHf6Xwr9xjvLNwubLp6jZB',
@@ -19,16 +15,9 @@ const DEX_PROGRAM_IDS = {
   LIFINITY: '2wT8Yq49kHgDzXuPxZSaeLaH1qbmGXtEyPy64bL7aD3c'
 };
 
-const client = new Client({
-  intents: [GatewayIntentBits.Guilds],
-  presence: {
-    activities: [{ name: 'for arb trades', type: 'WATCHING' }]
-  }
-});
-
-const connection = new Connection(clusterApiUrl(NETWORK), {
+const connection = new Connection(clusterApiUrl('mainnet-beta'), {
   commitment: 'confirmed',
-  wsEndpoint: clusterApiUrl(NETWORK).replace('https', 'wss')
+  wsEndpoint: clusterApiUrl('mainnet-beta').replace('https', 'wss')
 });
 
 let lastSignature = null;
@@ -101,7 +90,7 @@ const formatTradeDetails = (transaction, signature) => {
 
 const sendTradeNotification = async tradeDetails => {
   try {
-    const channel = client.channels.cache.get(CHANNEL_ID);
+    const channel = client.channels.cache.get(process.env.CHANNEL_ID);
     if (!channel) {
       console.error('Discord channel not found!');
       return;
@@ -118,7 +107,7 @@ const sendTradeNotification = async tradeDetails => {
 };
 
 const monitorTrades = async () => {
-  const publicKey = new PublicKey(WALLET_ADDRESS);
+  const publicKey = new PublicKey(process.env.WALLET_ADDRESS);
   console.log('Starting trade monitoring for address:', WALLET_ADDRESS);
 
   try {
@@ -177,4 +166,4 @@ process.on('unhandledRejection', error => {
   console.error('Unhandled promise rejection:', error);
 });
 
-client.login(TOKEN);
+client.login(process.env.DISCORD_TOKEN);

@@ -6,5 +6,8 @@
 	"devDependencies": {
 		"dotenv": "^16.4.7"
 	},
+	"scripts": {
+		"start": "node ./src/index.js"
+	},
 	"type": "module"
 }
