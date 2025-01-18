@@ -1,5 +1,11 @@
-import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
-import { client } from './bot';
+import { getAssociatedTokenAddress, NATIVE_MINT } from '@solana/spl-token';
+import { client } from './bot.js';
+import {
+  Connection,
+  PublicKey,
+  clusterApiUrl,
+  LAMPORTS_PER_SOL
+} from '@solana/web3.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -71,12 +77,29 @@ const checkIfArbTrade = (transaction) => {
   return false;
 };
 
-const formatTradeDetails = (transaction, signature) => {
-  const solscanUrl = `https://solscan.io/tx/${signature}`;
+const formatTradeDetails = async (transaction, signature) => {
+  const solscanUrl = `<https://solscan.io/tx/${signature}>`;
+  const publicKey = new PublicKey(WALLET_ADDRESS);
+  const associatedTokenAddress = await getAssociatedTokenAddress(
+    NATIVE_MINT,
+    publicKey
+  );
+
+  const tokenAccountInfo = await connection.getAccountInfo(
+    associatedTokenAddress
+  );
+  let wrappedSolBalance = 0;
+  if (tokenAccountInfo) {
+    wrappedSolBalance = tokenAccountInfo.lamports;
+  }
 
   return `
 🔍 **Transaction Details**
 └ [View on Solscan](${solscanUrl})
+
+💸 **Account Details**
+└ Wallet Balance for Trades: \`${wrappedSolBalance.toFixed(2) / LAMPORTS_PER_SOL} wSOL\`
+└ Wallet Balance for Gas: \`${(await connection.getBalance(publicKey)).toFixed(2) / LAMPORTS_PER_SOL} SOL\`
 
 ⚡️ **Timing**
 └ Block: \`${transaction.slot}\`
@@ -137,7 +160,10 @@ const monitorTrades = async () => {
         console.log(`Is arbitrage: ${isArb}`);
 
         if (isArb) {
-          const tradeDetails = formatTradeDetails(transaction, lastSignature);
+          const tradeDetails = await formatTradeDetails(
+            transaction,
+            lastSignature
+          );
           await sendTradeNotification(tradeDetails);
         }
       } catch (error) {
