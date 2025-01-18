@@ -18,6 +18,9 @@ importers:
       dotenv:
         specifier: ^16.4.7
         version: 16.4.7
+      prettier:
+        specifier: ^3.4.2
+        version: 3.4.2
 
 packages:
 
@@ -228,6 +231,11 @@ packages:
 
   node-gyp-build@4.8.4:
     resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
+    hasBin: true
+
+  prettier@3.4.2:
+    resolution: {integrity: sha512-e9MewbtFo+Fevyuxn/4rrcDAaq0IYxPGLvObpQjiZBMAzB9IGmzlnG9RZy3FFas+eBMu2vA0CszMeduow5dIuQ==}
+    engines: {node: '>=14'}
     hasBin: true
 
   regenerator-runtime@0.14.1:
@@ -556,6 +564,8 @@ snapshots:
 
   node-gyp-build@4.8.4:
     optional: true
+
+  prettier@3.4.2: {}
 
   regenerator-runtime@0.14.1: {}
 

@@ -4,10 +4,13 @@
 		"discord.js": "^14.17.3"
 	},
 	"devDependencies": {
-		"dotenv": "^16.4.7"
+		"dotenv": "^16.4.7",
+		"prettier": "^3.4.2"
 	},
 	"scripts": {
-		"start": "node ./src/index.js"
+		"start": "node ./src/index.js",
+		"format": "prettier --write \"src/**/*.js\"",
+		"format:check": "prettier --check \"src/**/*.js\""
 	},
 	"type": "module"
 }

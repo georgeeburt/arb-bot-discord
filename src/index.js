@@ -22,7 +22,7 @@ const connection = new Connection(clusterApiUrl('mainnet-beta'), {
 
 let lastSignature = null;
 
-const getAllInstructions = transaction => {
+const getAllInstructions = (transaction) => {
   let instructions = [];
 
   // Add main instructions
@@ -32,7 +32,7 @@ const getAllInstructions = transaction => {
 
   // Add inner instructions
   if (transaction.meta?.innerInstructions) {
-    transaction.meta.innerInstructions.forEach(inner => {
+    transaction.meta.innerInstructions.forEach((inner) => {
       instructions.push(...inner.instructions);
     });
   }
@@ -40,7 +40,7 @@ const getAllInstructions = transaction => {
   return instructions;
 };
 
-const checkIfArbTrade = transaction => {
+const checkIfArbTrade = (transaction) => {
   if (!transaction?.meta) {
     console.log('No transaction metadata found');
     return false;
@@ -50,13 +50,13 @@ const checkIfArbTrade = transaction => {
 
   // Get unique program IDs
   const programIds = allInstructions
-    .map(ix => ix.programId.toString())
+    .map((ix) => ix.programId.toString())
     .filter((value, index, self) => self.indexOf(value) === index);
 
   console.log('All program IDs found:', programIds);
 
   // Check for DEX interactions
-  const dexInteractions = programIds.filter(id =>
+  const dexInteractions = programIds.filter((id) =>
     Object.values(DEX_PROGRAM_IDS).includes(id)
   );
 
@@ -72,7 +72,7 @@ const checkIfArbTrade = transaction => {
 const formatTradeDetails = (transaction, signature) => {
   const solscanUrl = `https://solscan.io/tx/${signature}`;
   const allInstructions = getAllInstructions(transaction);
-  const programIds = allInstructions.map(ix => ix.programId);
+  const programIds = allInstructions.map((ix) => ix.programId);
 
   if (programIds.includes(DEX_PROGRAM_IDS.JUPITER_V6)) {
     dexesUsed.push('JUPITER_ROUTE');
@@ -88,7 +88,7 @@ const formatTradeDetails = (transaction, signature) => {
 `;
 };
 
-const sendTradeNotification = async tradeDetails => {
+const sendTradeNotification = async (tradeDetails) => {
   try {
     const channel = client.channels.cache.get(process.env.CHANNEL_ID);
     if (!channel) {
@@ -111,7 +111,7 @@ const monitorTrades = async () => {
   console.log('Starting trade monitoring for address:', WALLET_ADDRESS);
 
   try {
-    connection.onAccountChange(publicKey, async accountInfo => {
+    connection.onAccountChange(publicKey, async (accountInfo) => {
       try {
         const signatures = await connection.getSignaturesForAddress(publicKey, {
           limit: 1
@@ -156,13 +156,13 @@ const monitorTrades = async () => {
 
 client.once('ready', () => {
   console.log(`Bot logged in as ${client.user.tag}`);
-  monitorTrades().catch(error => {
+  monitorTrades().catch((error) => {
     console.error('Error in monitorTrades:', error);
     process.exit(1);
   });
 });
 
-process.on('unhandledRejection', error => {
+process.on('unhandledRejection', (error) => {
   console.error('Unhandled promise rejection:', error);
 });
 
