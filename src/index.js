@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const WALLET_ADDRESS = process.env.WALLET_ADDRESS;
+
 // Watched DEX Programs
 const DEX_PROGRAM_IDS = {
   JUPITER: 'JUP6ivLEzfRyir16JMq1o1w8WywjYsFnE6HAx5TyZnd',
@@ -71,12 +73,6 @@ const checkIfArbTrade = (transaction) => {
 
 const formatTradeDetails = (transaction, signature) => {
   const solscanUrl = `https://solscan.io/tx/${signature}`;
-  const allInstructions = getAllInstructions(transaction);
-  const programIds = allInstructions.map((ix) => ix.programId);
-
-  if (programIds.includes(DEX_PROGRAM_IDS.JUPITER_V6)) {
-    dexesUsed.push('JUPITER_ROUTE');
-  }
 
   return `
 🔍 **Transaction Details**
@@ -107,11 +103,11 @@ const sendTradeNotification = async (tradeDetails) => {
 };
 
 const monitorTrades = async () => {
-  const publicKey = new PublicKey(process.env.WALLET_ADDRESS);
+  const publicKey = new PublicKey(WALLET_ADDRESS);
   console.log('Starting trade monitoring for address:', WALLET_ADDRESS);
 
   try {
-    connection.onAccountChange(publicKey, async (accountInfo) => {
+    connection.onAccountChange(publicKey, async () => {
       try {
         const signatures = await connection.getSignaturesForAddress(publicKey, {
           limit: 1
