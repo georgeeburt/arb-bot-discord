@@ -6,6 +6,7 @@ import {
   clusterApiUrl,
   LAMPORTS_PER_SOL
 } from '@solana/web3.js';
+import logger from './lib/utils/logger.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -50,7 +51,7 @@ const getAllInstructions = (transaction) => {
 
 const checkIfArbTrade = (transaction) => {
   if (!transaction?.meta) {
-    console.log('No transaction metadata found');
+    logger.info('No transaction metadata found');
     return false;
   }
 
@@ -61,14 +62,14 @@ const checkIfArbTrade = (transaction) => {
     .map((ix) => ix.programId.toString())
     .filter((value, index, self) => self.indexOf(value) === index);
 
-  console.log('All program IDs found:', programIds);
+  logger.info('All program IDs found:', programIds);
 
   // Check for DEX interactions
   const dexInteractions = programIds.filter((id) =>
     Object.values(DEX_PROGRAM_IDS).includes(id)
   );
 
-  console.log('DEX interactions found:', dexInteractions);
+  logger.info('DEX interactions found:', dexInteractions);
 
   if (dexInteractions.length > 0) {
     return true;
@@ -98,8 +99,8 @@ const formatTradeDetails = async (transaction, signature) => {
 └ [View on Solscan](${solscanUrl})
 
 💸 **Account Details**
-└ Wallet Balance for Trades: \`${wrappedSolBalance.toFixed(2) / LAMPORTS_PER_SOL} wSOL\`
-└ Wallet Balance for Gas: \`${(await connection.getBalance(publicKey)).toFixed(2) / LAMPORTS_PER_SOL} SOL\`
+└ Wallet Balance for Trades: \`${(wrappedSolBalance / LAMPORTS_PER_SOL).toFixed(3)} wSOL\`
+└ Wallet Balance for Gas: \`${((await connection.getBalance(publicKey)) / LAMPORTS_PER_SOL).toFixed(3)} SOL\`
 
 ⚡️ **Timing**
 └ Block: \`${transaction.slot}\`
@@ -111,7 +112,7 @@ const sendTradeNotification = async (tradeDetails) => {
   try {
     const channel = client.channels.cache.get(process.env.CHANNEL_ID);
     if (!channel) {
-      console.error('Discord channel not found!');
+      logger.fatal('Discord channel not found!');
       return;
     }
 
@@ -119,15 +120,15 @@ const sendTradeNotification = async (tradeDetails) => {
       content: `🚨 **Arbitrage Trade Detected!** 🚨\n${tradeDetails}`,
       allowedMentions: { parse: [] }
     });
-    console.log('Trade notification sent successfully');
+    logger.info('Trade notification sent successfully');
   } catch (error) {
-    console.error('Failed to send notification:', error);
+    logger.error('Failed to send notification:', error);
   }
 };
 
 const monitorTrades = async () => {
   const publicKey = new PublicKey(WALLET_ADDRESS);
-  console.log('Starting trade monitoring for address:', WALLET_ADDRESS);
+  logger.info('Starting trade monitoring for address:', WALLET_ADDRESS);
 
   try {
     connection.onAccountChange(publicKey, async () => {
@@ -141,7 +142,7 @@ const monitorTrades = async () => {
         }
 
         lastSignature = signatures[0].signature;
-        console.log(`\nProcessing new transaction: ${lastSignature}`);
+        logger.info(`\nProcessing new transaction: ${lastSignature}`);
 
         const transaction = await connection.getParsedTransaction(
           lastSignature,
@@ -152,12 +153,12 @@ const monitorTrades = async () => {
         );
 
         if (!transaction) {
-          console.log(`No transaction data found for ${lastSignature}`);
+          logger.info(`No transaction data found for ${lastSignature}`);
           return;
         }
 
         const isArb = checkIfArbTrade(transaction);
-        console.log(`Is arbitrage: ${isArb}`);
+        logger.info(`Is arbitrage: ${isArb}`);
 
         if (isArb) {
           const tradeDetails = await formatTradeDetails(
@@ -167,25 +168,25 @@ const monitorTrades = async () => {
           await sendTradeNotification(tradeDetails);
         }
       } catch (error) {
-        console.error('Error processing transaction:', error);
+        logger.error('Error processing transaction:', error);
       }
     });
   } catch (error) {
-    console.error('Error setting up account monitoring:', error);
+    logger.error('Error setting up account monitoring:', error);
     setTimeout(() => monitorTrades(), 5000);
   }
 };
 
 client.once('ready', () => {
-  console.log(`Bot logged in as ${client.user.tag}`);
+  logger.info(`Bot logged in as ${client.user.tag}`);
   monitorTrades().catch((error) => {
-    console.error('Error in monitorTrades:', error);
+    logger.error('Error in monitorTrades:', error);
     process.exit(1);
   });
 });
 
 process.on('unhandledRejection', (error) => {
-  console.error('Unhandled promise rejection:', error);
+  logger.error('Unhandled promise rejection:', error);
 });
 
 client.login(process.env.DISCORD_TOKEN);
