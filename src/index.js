@@ -52,14 +52,14 @@ const checkIfArbTrade = (transaction) => {
     .map((ix) => ix.programId.toString())
     .filter((value, index, self) => self.indexOf(value) === index);
 
-  logger.info('All program IDs found:', programIds);
+  logger.info(`All program IDs found: ${programIds}`);
 
   // Check for DEX interactions
   const dexInteractions = programIds.filter((id) =>
     Object.values(DEX_PROGRAM_IDS).includes(id)
   );
 
-  logger.info('DEX interactions found:', dexInteractions);
+  logger.info(`DEX interactions found: ${dexInteractions}`);
 
   if (dexInteractions.length > 0) {
     return true;
@@ -112,13 +112,13 @@ const sendTradeNotification = async (tradeDetails) => {
     });
     logger.info('Trade notification sent successfully');
   } catch (error) {
-    logger.error('Failed to send notification:', error);
+    logger.error(`Failed to send notification: ${error}`);
   }
 };
 
 const monitorTrades = async () => {
   const publicKey = new PublicKey(WALLET_ADDRESS);
-  logger.info('Starting trade monitoring for address:', WALLET_ADDRESS);
+  logger.info(`Starting trade monitoring for address: ${WALLET_ADDRESS}`);
 
   try {
     connection.onAccountChange(publicKey, async () => {
@@ -158,11 +158,11 @@ const monitorTrades = async () => {
           await sendTradeNotification(tradeDetails);
         }
       } catch (error) {
-        logger.error('Error processing transaction:', error);
+        logger.error(`Error processing transaction: ${error}`);
       }
     });
   } catch (error) {
-    logger.error('Error setting up account monitoring:', error);
+    logger.error(`Error setting up account monitoring: ${error}`);
     setTimeout(() => monitorTrades(), 5000);
   }
 };
@@ -170,13 +170,13 @@ const monitorTrades = async () => {
 client.once('ready', () => {
   logger.info(`Bot logged in as ${client.user.tag}`);
   monitorTrades().catch((error) => {
-    logger.error('Error in monitorTrades:', error);
+    logger.error(`Error in monitorTrades: ${error}`);
     process.exit(1);
   });
 });
 
 process.on('unhandledRejection', (error) => {
-  logger.error('Unhandled promise rejection:', error);
+  logger.error(`Unhandled promise rejection: ${error}`);
 });
 
 client.login(process.env.DISCORD_TOKEN);
