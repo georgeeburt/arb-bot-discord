@@ -1,28 +1,18 @@
 import { getAssociatedTokenAddress, NATIVE_MINT } from '@solana/spl-token';
-import { client } from './bot.js';
+import { DEX_PROGRAM_IDS } from './lib/constants/dexProgramConstants.js';
 import {
   Connection,
   PublicKey,
   clusterApiUrl,
   LAMPORTS_PER_SOL
 } from '@solana/web3.js';
+import { client } from './bot.js';
 import logger from './lib/utils/logger.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const WALLET_ADDRESS = process.env.WALLET_ADDRESS;
-
-// Watched DEX Programs
-const DEX_PROGRAM_IDS = {
-  JUPITER: 'JUP6ivLEzfRyir16JMq1o1w8WywjYsFnE6HAx5TyZnd',
-  JUPITER_V6: 'JUP6LiYdsyVJBTY7S4XxNBHf6Xwr9xjvLNwubLp6jZB',
-  RAYDIUM: 'CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK',
-  ORCA: 'whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc',
-  METEORA: 'LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo',
-  SERUM: '9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin',
-  LIFINITY: '2wT8Yq49kHgDzXuPxZSaeLaH1qbmGXtEyPy64bL7aD3c'
-};
 
 const connection = new Connection(clusterApiUrl('mainnet-beta'), {
   commitment: 'confirmed',
