@@ -19,14 +19,14 @@ const devTransport = pino.transport({
 });
 
 // Production transport configuration with Logtail
-const transport = pino.transport({
+const prodTransport = pino.transport({
   target: '@logtail/pino',
   options: { sourceToken: token }
 });
 
-const logger =
-  isDevelopment === 'development'
-    ? pino(devTransport, loggerConfig)
-    : pino(transport, loggerConfig);
+const transport =
+  isDevelopment === 'development' ? devTransport : prodTransport;
+
+const logger = pino.default({ ...loggerConfig }, transport);
 
 export default logger;

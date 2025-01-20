@@ -4,7 +4,8 @@ import {
   Connection,
   PublicKey,
   clusterApiUrl,
-  LAMPORTS_PER_SOL
+  LAMPORTS_PER_SOL,
+  ParsedTransactionWithMeta
 } from '@solana/web3.js';
 import { client } from './bot.js';
 import logger from './lib/utils/logger.js';
@@ -19,10 +20,10 @@ const connection = new Connection(clusterApiUrl('mainnet-beta'), {
   wsEndpoint: clusterApiUrl('mainnet-beta').replace('https', 'wss')
 });
 
-let lastSignature = null;
+let lastSignature: null | string = null;
 
-const getAllInstructions = (transaction) => {
-  let instructions = [];
+const getAllInstructions = (transaction: ParsedTransactionWithMeta) => {
+  const instructions = [];
 
   // Add main instructions
   if (transaction.transaction?.message?.instructions) {
@@ -39,7 +40,7 @@ const getAllInstructions = (transaction) => {
   return instructions;
 };
 
-const checkIfArbTrade = (transaction) => {
+const checkIfArbTrade = (transaction: ParsedTransactionWithMeta) => {
   if (!transaction?.meta) {
     logger.info('No transaction metadata found');
     return false;
@@ -68,9 +69,12 @@ const checkIfArbTrade = (transaction) => {
   return false;
 };
 
-const formatTradeDetails = async (transaction, signature) => {
+const formatTradeDetails = async (
+  transaction: ParsedTransactionWithMeta,
+  signature: string
+) => {
   const solscanUrl = `<https://solscan.io/tx/${signature}>`;
-  const publicKey = new PublicKey(WALLET_ADDRESS);
+  const publicKey = new PublicKey(WALLET_ADDRESS as string);
   const associatedTokenAddress = await getAssociatedTokenAddress(
     NATIVE_MINT,
     publicKey
@@ -94,22 +98,23 @@ const formatTradeDetails = async (transaction, signature) => {
 
 ⚡️ **Timing**
 └ Block: \`${transaction.slot}\`
-└ Time: \`${new Date(transaction.blockTime * 1000).toLocaleString()}\`
+└ Time: ${transaction.blockTime ? new Date(transaction.blockTime * 1000).toLocaleString() : 'N/A'}\`
 `;
 };
 
-const sendTradeNotification = async (tradeDetails) => {
+const sendTradeNotification = async (tradeDetails: string) => {
   try {
-    const channel = client.channels.cache.get(process.env.CHANNEL_ID);
+    const channel = client.channels.cache.get(process.env.CHANNEL_ID as string);
     if (!channel) {
       logger.fatal('Discord channel not found!');
       return;
     }
-
-    await channel.send({
-      content: `🚨 **Arbitrage Trade Detected!** 🚨\n${tradeDetails}`,
-      allowedMentions: { parse: [] }
-    });
+    if (channel.isTextBased() && 'send' in channel) {
+      await channel.send({
+        content: `🚨 **Arbitrage Trade Detected!** 🚨\n${tradeDetails}`,
+        allowedMentions: { parse: [] }
+      });
+    }
     logger.info('Trade notification sent successfully');
   } catch (error) {
     logger.error(`Failed to send notification: ${error}`);
@@ -117,7 +122,7 @@ const sendTradeNotification = async (tradeDetails) => {
 };
 
 const monitorTrades = async () => {
-  const publicKey = new PublicKey(WALLET_ADDRESS);
+  const publicKey = new PublicKey(WALLET_ADDRESS as string);
   logger.info(`Starting trade monitoring for address: ${WALLET_ADDRESS}`);
 
   try {
@@ -168,7 +173,7 @@ const monitorTrades = async () => {
 };
 
 client.once('ready', () => {
-  logger.info(`Bot logged in as ${client.user.tag}`);
+  logger.info(`Bot logged in as ${client.user?.tag}`);
   monitorTrades().catch((error) => {
     logger.error(`Error in monitorTrades: ${error}`);
     process.exit(1);
