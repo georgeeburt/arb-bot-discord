@@ -1,7 +1,8 @@
 import { client } from '../../bot.js';
+import { EmbedBuilder } from 'discord.js';
 import logger from '../utils/logger.js';
 
-const sendTradeNotification = async (tradeDetails: string) => {
+const sendTradeNotification = async (embed: EmbedBuilder) => {
   try {
     const channel = client.channels.cache.get(process.env.CHANNEL_ID as string);
     if (!channel) {
@@ -10,8 +11,7 @@ const sendTradeNotification = async (tradeDetails: string) => {
     }
     if (channel.isTextBased() && 'send' in channel) {
       await channel.send({
-        content: `🚨 **Arbitrage Trade Detected!** 🚨\n${tradeDetails}`,
-        allowedMentions: { parse: [] }
+        embeds: [embed]
       });
     }
   } catch (error) {

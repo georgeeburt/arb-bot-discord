@@ -11,6 +11,7 @@ import connection from '../utils/solana.js';
 import logger from '../utils/logger.js';
 import dotenv from 'dotenv';
 import { subscriptionManager } from '../utils/subscription-manager.js';
+import { tradeEmbed } from '../utils/embedUtils.js';
 
 dotenv.config();
 
@@ -59,12 +60,15 @@ export const monitorTrades = async (pubKey: string) => {
         logger.info(`Is arbitrage: ${isArb}`);
 
         if (isArb) {
-          const tradeDetails = await formatTradeDetails(
-            transaction,
-            lastSignature,
-            publicKey
-          );
-          await sendTradeNotification(tradeDetails);
+          const arbEmbed = tradeEmbed({
+            signature: lastSignature,
+            solBalance: await connection.getBalance(publicKey),
+            wSolBalance: await getWrappedSolBalance(pubKey),
+            tradeTime: new Date().toLocaleTimeString(),
+            block: transaction.slot
+          });
+
+          await sendTradeNotification(arbEmbed);
         }
       } catch (error) {
         logger.error(`Error processing transaction: ${error}`);
@@ -95,12 +99,7 @@ export const getAllInstructions = (transaction: ParsedTransactionWithMeta) => {
   return instructions;
 };
 
-export const formatTradeDetails = async (
-  transaction: ParsedTransactionWithMeta,
-  signature: string | null,
-  pubKey: PublicKey
-) => {
-  const solscanUrl = `<https://solscan.io/tx/${signature}>`;
+export const getWrappedSolBalance = async (pubKey: string) => {
   const publicKey = new PublicKey(pubKey);
   const associatedTokenAddress = await getAssociatedTokenAddress(
     NATIVE_MINT,
@@ -110,23 +109,14 @@ export const formatTradeDetails = async (
   const tokenAccountInfo = await connection.getAccountInfo(
     associatedTokenAddress
   );
+
   let wrappedSolBalance = 0;
+
   if (tokenAccountInfo) {
     wrappedSolBalance = tokenAccountInfo.lamports;
   }
 
-  return `
-🔍 **Transaction Details**
-└ [View on Solscan](${solscanUrl})
-
-💸 **Account Details**
-└ Wallet Balance for Trades: \`${(wrappedSolBalance / LAMPORTS_PER_SOL).toFixed(3)} wSOL\`
-└ Wallet Balance for Gas: \`${((await connection.getBalance(publicKey)) / LAMPORTS_PER_SOL).toFixed(3)} SOL\`
-
-⚡️ **Timing**
-└ Block: \`${transaction.slot}\`
-└ Time: \`${transaction.blockTime ? new Date(transaction.blockTime * 1000).toLocaleString() : 'N/A'}\`
-`;
+  return wrappedSolBalance;
 };
 
 export const checkIfArbTrade = (transaction: ParsedTransactionWithMeta) => {
@@ -156,4 +146,8 @@ export const checkIfArbTrade = (transaction: ParsedTransactionWithMeta) => {
   }
 
   return false;
+};
+
+export const formatSolscanUrl = (signature: string) => {
+  return `<https://solscan.io/tx/${signature}>`;
 };
