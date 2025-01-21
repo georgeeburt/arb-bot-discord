@@ -10,7 +10,7 @@ const { Pool } = postgres;
 
 const pool = new Pool({
   connectionString: dbUrl
-})
+});
 
 const db = drizzle(pool, {
   schema: { trackedWallets }

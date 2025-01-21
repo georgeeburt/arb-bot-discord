@@ -5,30 +5,34 @@ import logger from '../utils/logger.js';
 
 export const getUserData = async (userId: string) => {
   try {
-    const userData = await db.query.trackedWallets.findFirst({
+    return await db.query.trackedWallets.findFirst({
       where: eq(trackedWallets.userId, userId)
     });
-
-    if (userData) {
-      return userData;
-    } else {
-      return null;
-    }
   } catch (error) {
     logger.error(`Error finding user data: ${error}`);
   }
 };
 
-export const trackWallet = async (
-  userId: string,
-  walletAddress: string
-) => {
+export const trackWallet = async (userId: string, walletAddress: string) => {
   try {
-    await db.insert(trackedWallets).values({
+    return await db.insert(trackedWallets).values({
       userId,
       walletAddress
     });
   } catch (error) {
     logger.error(`Error tracking wallet: ${error}`);
+  }
+};
+
+export const untrackWallet = async (userId: string) => {
+  try {
+    const data = await db
+      .delete(trackedWallets)
+      .where(eq(trackedWallets.userId, userId))
+      .returning();
+
+    return data;
+  } catch (error) {
+    logger.error(`Error untracking wallet: ${error}`);
   }
 };

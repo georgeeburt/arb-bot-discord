@@ -14,7 +14,6 @@ const sendTradeNotification = async (tradeDetails: string) => {
         allowedMentions: { parse: [] }
       });
     }
-    logger.info('Trade notification sent successfully');
   } catch (error) {
     logger.error(`Failed to send notification: ${error}`);
   }

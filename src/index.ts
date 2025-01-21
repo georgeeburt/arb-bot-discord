@@ -1,5 +1,6 @@
 import { REST, Routes } from 'discord.js';
 import { trackCommand, track } from './commands/track.js';
+import { untrackCommand, untrack } from './commands/untrack.js';
 import { client } from './bot.js';
 import logger from './lib/utils/logger.js';
 
@@ -8,7 +9,7 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN as string);
 client.once('ready', async () => {
   try {
     logger.info(`Bot logged in as ${client.user?.tag}`);
-    const commands = [trackCommand.toJSON()];
+    const commands = [trackCommand.toJSON(), untrackCommand.toJSON()];
 
     await rest.put(Routes.applicationCommands(client.user!.id), {
       body: commands
@@ -21,8 +22,13 @@ client.once('ready', async () => {
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return;
 
-  if (interaction.commandName === 'track') {
-    await track(interaction);
+  switch (interaction.commandName) {
+    case 'track':
+      await track(interaction);
+      break;
+    case 'untrack':
+      await untrack(interaction);
+      break;
   }
 });
 

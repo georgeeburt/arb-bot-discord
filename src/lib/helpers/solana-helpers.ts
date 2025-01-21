@@ -10,25 +10,36 @@ import sendTradeNotification from './discord-helpers.js';
 import connection from '../utils/solana.js';
 import logger from '../utils/logger.js';
 import dotenv from 'dotenv';
+import { subscriptionManager } from '../utils/subscription-manager.js';
 
 dotenv.config();
 
-let lastSignature: null | string = null;
+const lastSignatures = new Map<string, string>();
 
 export const monitorTrades = async (pubKey: string) => {
   const publicKey = new PublicKey(pubKey);
+
   try {
-    connection.onAccountChange(publicKey, async () => {
+    const subscriptionId = connection.onAccountChange(publicKey, async () => {
+      if (!subscriptionManager.isWalletSubscribed(pubKey)) {
+        return;
+      }
+
       try {
         const signatures = await connection.getSignaturesForAddress(publicKey, {
           limit: 1
         });
 
-        if (!signatures.length || signatures[0].signature === lastSignature) {
+        const lastSignature = signatures[0].signature;
+
+        if (
+          !signatures.length ||
+          lastSignature === lastSignatures.get(pubKey)
+        ) {
           return;
         }
 
-        lastSignature = signatures[0].signature;
+        lastSignatures.set(pubKey, lastSignature);
         logger.info(`\nProcessing new transaction: ${lastSignature}`);
 
         const transaction = await connection.getParsedTransaction(
@@ -59,6 +70,7 @@ export const monitorTrades = async (pubKey: string) => {
         logger.error(`Error processing transaction: ${error}`);
       }
     });
+    return subscriptionId;
   } catch (error) {
     logger.error(`Error setting up account monitoring: ${error}`);
     setTimeout(() => monitorTrades(pubKey), 5000);
@@ -113,7 +125,7 @@ export const formatTradeDetails = async (
 
 ⚡️ **Timing**
 └ Block: \`${transaction.slot}\`
-└ Time: ${transaction.blockTime ? new Date(transaction.blockTime * 1000).toLocaleString() : 'N/A'}\`
+└ Time: \`${transaction.blockTime ? new Date(transaction.blockTime * 1000).toLocaleString() : 'N/A'}\`
 `;
 };
 
