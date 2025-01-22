@@ -1,6 +1,7 @@
 import { EmbedBuilder } from 'discord.js';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import type { TradeDetails } from '../../../types/index.js';
+import { formatSolscanUrl } from '../helpers/solana-helpers.js';
 
 export const tradeEmbed = ({
   signature,
@@ -12,6 +13,9 @@ export const tradeEmbed = ({
   return new EmbedBuilder()
     .setTitle('🔮 Arbitrage Trade Detected 🔮')
     .setColor('#3914B7')
+    .setDescription(
+      `[View Transaction on Solscan](${formatSolscanUrl(signature)})`
+    )
     .addFields(
       { name: 'Transaction Signature', value: `\`${signature}\`` },
       { name: 'Block', value: `\`${block}\``, inline: true },
@@ -23,7 +27,7 @@ export const tradeEmbed = ({
       },
       {
         name: 'wSOL Balance',
-        value: `${(wSolBalance / LAMPORTS_PER_SOL).toFixed(4)}`,
+        value: `\`${(wSolBalance / LAMPORTS_PER_SOL).toFixed(4)}\``,
         inline: true
       }
     )

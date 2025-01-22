@@ -5,7 +5,10 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const dbUrl = process.env.DATABASE_URL as string;
+const dbUrl =
+  process.env.NODE_ENV === 'production'
+    ? process.env.DATABASE_URL
+    : 'postgresql://postgres@localhost:5432/arbi';
 const { Pool } = postgres;
 
 const pool = new Pool({
