@@ -1,4 +1,7 @@
 import pino from 'pino';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const token = process.env.LOGTAIL_SOURCE_TOKEN;
 const isDevelopment = process.env.NODE_ENV || 'development';

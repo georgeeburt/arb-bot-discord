@@ -1,10 +1,12 @@
-import { client } from '../../bot.js';
-import { EmbedBuilder } from 'discord.js';
+import { CommandInteraction, EmbedBuilder } from 'discord.js';
 import logger from '../utils/logger.js';
 
-const sendTradeNotification = async (embed: EmbedBuilder) => {
+const sendTradeNotification = async (
+  embed: EmbedBuilder,
+  interaction: CommandInteraction
+) => {
   try {
-    const channel = client.channels.cache.get(process.env.CHANNEL_ID as string);
+    const channel = interaction.channel;
     if (!channel) {
       logger.fatal('Discord channel not found!');
       return;

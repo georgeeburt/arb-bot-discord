@@ -7,6 +7,7 @@ export const tradeEmbed = ({
   signature,
   solBalance,
   wSolBalance,
+  profit,
   tradeTime,
   block
 }: TradeDetails) => {
@@ -17,19 +18,20 @@ export const tradeEmbed = ({
       `[View Transaction on Solscan](${formatSolscanUrl(signature)})`
     )
     .addFields(
+      { name: 'Total Profit', value: `\`${profit} SOL\`` },
       { name: 'Transaction Signature', value: `\`${signature}\`` },
-      { name: 'Block', value: `\`${block}\``, inline: true },
-      { name: 'Time', value: `\`${tradeTime}\``, inline: true },
       {
         name: 'SOL Balance',
-        value: `\`${(solBalance / LAMPORTS_PER_SOL).toFixed(4)}\``,
+        value: `\`${(Number(solBalance) / LAMPORTS_PER_SOL).toFixed(4)} SOL\``,
         inline: true
       },
       {
         name: 'wSOL Balance',
-        value: `\`${(wSolBalance / LAMPORTS_PER_SOL).toFixed(4)}\``,
+        value: `\`${wSolBalance.toFixed(4)} wSOL\``,
         inline: true
-      }
+      },
+      { name: 'Block', value: `\`${block}\``, inline: true },
+      { name: 'Time', value: `\`${tradeTime}\``, inline: true }
     )
     .setFooter({ text: 'Made by @0xarii' })
     .setTimestamp();

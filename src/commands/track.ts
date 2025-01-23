@@ -62,7 +62,7 @@ export const track = async (interaction: CommandInteraction) => {
           );
         }
       } else {
-        const newSubId = await monitorTrades(walletAddressToTrack);
+        const newSubId = await monitorTrades(walletAddressToTrack, interaction);
         subscriptionManager.addSubscription(
           walletAddressToTrack,
           userId,

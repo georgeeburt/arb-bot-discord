@@ -1,23 +1,26 @@
 import {
   PublicKey,
-  LAMPORTS_PER_SOL,
-  ParsedTransactionWithMeta
+  ParsedTransactionWithMeta,
+  LAMPORTS_PER_SOL
 } from '@solana/web3.js';
-import { getAssociatedTokenAddress } from '@solana/spl-token';
-import { NATIVE_MINT } from '@solana/spl-token';
+import { getAssociatedTokenAddress, NATIVE_MINT } from '@solana/spl-token';
+import { CommandInteraction } from 'discord.js';
 import { DEX_PROGRAM_IDS } from '../constants/dex-program-constants.js';
 import sendTradeNotification from './discord-helpers.js';
 import connection from '../utils/solana.js';
-import logger from '../utils/logger.js';
-import dotenv from 'dotenv';
 import { subscriptionManager } from '../utils/subscription-manager.js';
 import { tradeEmbed } from '../utils/embedUtils.js';
+import logger from '../utils/logger.js';
+import dotenv from 'dotenv';
 
 dotenv.config();
 
 const lastSignatures = new Map<string, string>();
 
-export const monitorTrades = async (pubKey: string) => {
+export const monitorTrades = async (
+  pubKey: string,
+  interaction: CommandInteraction
+) => {
   const publicKey = new PublicKey(pubKey);
 
   try {
@@ -62,13 +65,16 @@ export const monitorTrades = async (pubKey: string) => {
         if (isArb) {
           const arbEmbed = tradeEmbed({
             signature: lastSignature,
-            solBalance: await connection.getBalance(publicKey),
-            wSolBalance: await getWrappedSolBalance(pubKey),
+            solBalance: transaction.meta?.postBalances[0] as number,
+            wSolBalance: transaction.meta?.postTokenBalances?.find(
+              (balance) => balance.mint === NATIVE_MINT.toString()
+            )?.uiTokenAmount.uiAmount as number,
+            profit: calculateArbProfit(transaction),
             tradeTime: new Date().toLocaleTimeString(),
             block: transaction.slot
           });
 
-          await sendTradeNotification(arbEmbed);
+          await sendTradeNotification(arbEmbed, interaction);
         }
       } catch (error) {
         logger.error(`Error processing transaction: ${error}`);
@@ -77,7 +83,7 @@ export const monitorTrades = async (pubKey: string) => {
     return subscriptionId;
   } catch (error) {
     logger.error(`Error setting up account monitoring: ${error}`);
-    setTimeout(() => monitorTrades(pubKey), 5000);
+    setTimeout(() => monitorTrades(pubKey, interaction), 5000);
   }
 };
 
@@ -97,26 +103,6 @@ export const getAllInstructions = (transaction: ParsedTransactionWithMeta) => {
   }
 
   return instructions;
-};
-
-export const getWrappedSolBalance = async (pubKey: string) => {
-  const publicKey = new PublicKey(pubKey);
-  const associatedTokenAddress = await getAssociatedTokenAddress(
-    NATIVE_MINT,
-    publicKey
-  );
-
-  const tokenAccountInfo = await connection.getAccountInfo(
-    associatedTokenAddress
-  );
-
-  let wrappedSolBalance = 0;
-
-  if (tokenAccountInfo) {
-    wrappedSolBalance = tokenAccountInfo.lamports;
-  }
-
-  return wrappedSolBalance;
 };
 
 export const checkIfArbTrade = (transaction: ParsedTransactionWithMeta) => {
@@ -146,6 +132,29 @@ export const checkIfArbTrade = (transaction: ParsedTransactionWithMeta) => {
   }
 
   return false;
+};
+
+export const calculateArbProfit = (transaction: ParsedTransactionWithMeta) => {
+  const initialSolBalance = transaction.meta?.preBalances[0] as number;
+  let initialWrappedSolBalance = Number(
+    transaction.meta?.preTokenBalances?.find(
+      (balance) => balance.mint === NATIVE_MINT.toString()
+    )?.uiTokenAmount.amount
+  );
+
+  const postSolBalance = transaction.meta?.postBalances[0] as number;
+  const postWrappedSolBalance = Number(
+    transaction.meta?.postTokenBalances?.find(
+      (balance) => balance.mint === NATIVE_MINT.toString()
+    )?.uiTokenAmount.amount
+  );
+  return (
+    (postSolBalance +
+      postWrappedSolBalance -
+      initialSolBalance -
+      initialWrappedSolBalance) /
+    LAMPORTS_PER_SOL
+  );
 };
 
 export const formatSolscanUrl = (signature: string) => {
