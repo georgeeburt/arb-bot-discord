@@ -3,7 +3,7 @@ import {
   ParsedTransactionWithMeta,
   LAMPORTS_PER_SOL
 } from '@solana/web3.js';
-import { getAssociatedTokenAddress, NATIVE_MINT } from '@solana/spl-token';
+import { NATIVE_MINT } from '@solana/spl-token';
 import { CommandInteraction } from 'discord.js';
 import { DEX_PROGRAM_IDS } from '../constants/dex-program-constants.js';
 import sendTradeNotification from './discord-helpers.js';
@@ -127,7 +127,7 @@ export const checkIfArbTrade = (transaction: ParsedTransactionWithMeta) => {
 
   logger.info(`DEX interactions found: ${dexInteractions}`);
 
-  if (dexInteractions.length > 0) {
+  if (dexInteractions.length > 0 && transaction.meta.err === null) {
     return true;
   }
 
