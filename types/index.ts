@@ -3,6 +3,15 @@ export type SubscriptionInfo = {
   users: Set<string>;
 };
 
+export type UserTrackingData = {
+  userId: string;
+  walletAddress: string;
+  websocketId: number;
+  isDmTracking: boolean;
+  guildId: string | null;
+  channelId?: string | null;
+};
+
 export type TradeDetails = {
   signature: string;
   solBalance: string | number;

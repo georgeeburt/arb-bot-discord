@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { trackedWallets } from './schema.js';
+import { subscriptions, websocketConnections } from './schema.js';
 import postgres from 'pg';
 import dotenv from 'dotenv';
 
@@ -15,8 +15,12 @@ const pool = new Pool({
   connectionString: dbUrl
 });
 
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+});
+
 const db = drizzle(pool, {
-  schema: { trackedWallets }
+  schema: { subscriptions, websocketConnections }
 });
 
 export default db;

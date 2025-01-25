@@ -5,10 +5,9 @@ import {
 } from '@solana/web3.js';
 import { NATIVE_MINT } from '@solana/spl-token';
 import { CommandInteraction } from 'discord.js';
-import { DEX_PROGRAM_IDS } from '../constants/dex-program-constants.js';
+import { SMB_PROGRAM_ID } from '../constants/program-constants.js';
 import sendTradeNotification from './discord-helpers.js';
 import connection from '../utils/solana.js';
-import { subscriptionManager } from '../utils/subscription-manager.js';
 import { tradeEmbed } from '../utils/embedUtils.js';
 import logger from '../utils/logger.js';
 import dotenv from 'dotenv';
@@ -25,10 +24,6 @@ export const monitorTrades = async (
 
   try {
     const subscriptionId = connection.onAccountChange(publicKey, async () => {
-      if (!subscriptionManager.isWalletSubscribed(pubKey)) {
-        return;
-      }
-
       try {
         const signatures = await connection.getSignaturesForAddress(publicKey, {
           limit: 1
@@ -55,7 +50,6 @@ export const monitorTrades = async (
         );
 
         if (!transaction) {
-          logger.info(`No transaction data found for ${lastSignature}`);
           return;
         }
 
@@ -107,7 +101,6 @@ export const getAllInstructions = (transaction: ParsedTransactionWithMeta) => {
 
 export const checkIfArbTrade = (transaction: ParsedTransactionWithMeta) => {
   if (!transaction?.meta) {
-    logger.info('No transaction metadata found');
     return false;
   }
 
@@ -118,16 +111,10 @@ export const checkIfArbTrade = (transaction: ParsedTransactionWithMeta) => {
     .map((ix) => ix.programId.toString())
     .filter((value, index, self) => self.indexOf(value) === index);
 
-  logger.info(`All program IDs found: ${programIds}`);
-
   // Check for DEX interactions
-  const dexInteractions = programIds.filter((id) =>
-    Object.values(DEX_PROGRAM_IDS).includes(id)
-  );
+  const isSMBArb = programIds.includes(SMB_PROGRAM_ID);
 
-  logger.info(`DEX interactions found: ${dexInteractions}`);
-
-  if (dexInteractions.length > 0 && transaction.meta.err === null) {
+  if (isSMBArb && transaction.meta.err === null) {
     return true;
   }
 

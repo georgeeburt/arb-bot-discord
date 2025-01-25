@@ -1,0 +1,1 @@
+export const SMB_PROGRAM_ID = 'MEVK7RP6dDTbxAwirSY6R5v66oS5WvzbhAQD9jpy9Lj';
