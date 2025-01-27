@@ -33,6 +33,6 @@ export const tradeEmbed = ({
       { name: 'Block', value: `\`${block}\``, inline: true },
       { name: 'Time', value: `\`${tradeTime}\``, inline: true }
     )
-    .setFooter({ text: 'Made by @0xarii' })
+    .setFooter({ text: '🧱 Made by @0xarii' })
     .setTimestamp();
 };

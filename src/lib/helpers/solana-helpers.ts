@@ -8,7 +8,7 @@ import { DMChannel, Channel } from 'discord.js';
 import { SMB_PROGRAM_ID } from '../constants/program-constants.js';
 import { sendTradeNotification } from './discord-helpers.js';
 import connection from '../utils/solana.js';
-import { tradeEmbed } from '../utils/embedUtils.js';
+import { tradeEmbed } from '../embeds/trade-embed.js';
 import logger from '../utils/logger.js';
 import dotenv from 'dotenv';
 

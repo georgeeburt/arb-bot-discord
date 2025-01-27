@@ -3,6 +3,7 @@ import { trackCommand } from '../../commands/track.js';
 import { untrackCommand } from '../../commands/untrack.js';
 import { client } from '../../bot.js';
 import logger from '../utils/logger.js';
+import { helpCommand } from '../../commands/help.js';
 
 export const sendTradeNotification = async (
   embed: EmbedBuilder,
@@ -26,7 +27,11 @@ export const sendTradeNotification = async (
 export const registerCommands = async () => {
   const rest = new REST().setToken(process.env.DISCORD_TOKEN as string);
   try {
-    const commands = [trackCommand.toJSON(), untrackCommand.toJSON()];
+    const commands = [
+      trackCommand.toJSON(),
+      untrackCommand.toJSON(),
+      helpCommand.toJSON()
+    ];
     if (client.user?.id) {
       await rest.put(Routes.applicationCommands(client.user.id), {
         body: commands
