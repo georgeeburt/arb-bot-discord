@@ -1,12 +1,14 @@
-import { CommandInteraction, EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, REST, Routes, Channel } from 'discord.js';
+import { trackCommand } from '../../commands/track.js';
+import { untrackCommand } from '../../commands/untrack.js';
+import { client } from '../../bot.js';
 import logger from '../utils/logger.js';
 
-const sendTradeNotification = async (
+export const sendTradeNotification = async (
   embed: EmbedBuilder,
-  interaction: CommandInteraction
+  channel: Channel
 ) => {
   try {
-    const channel = interaction.channel;
     if (!channel) {
       logger.fatal('Discord channel not found!');
       return;
@@ -21,4 +23,19 @@ const sendTradeNotification = async (
   }
 };
 
-export default sendTradeNotification;
+export const registerCommands = async () => {
+  const rest = new REST().setToken(process.env.DISCORD_TOKEN as string);
+  try {
+    const commands = [trackCommand.toJSON(), untrackCommand.toJSON()];
+    if (client.user?.id) {
+      await rest.put(Routes.applicationCommands(client.user.id), {
+        body: commands
+      });
+      logger.info('Commands registered successfully');
+    } else {
+      logger.error('Bot user ID is missing');
+    }
+  } catch (error) {
+    logger.error(`Error registering commands: ${error}`);
+  }
+};

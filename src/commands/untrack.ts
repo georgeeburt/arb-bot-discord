@@ -1,5 +1,8 @@
 import { CommandInteraction, SlashCommandBuilder } from 'discord.js';
-import { getUserSubscription, removeUserSubscription } from '../lib/helpers/db-helpers.js';
+import {
+  getUserSubscription,
+  removeUserSubscription
+} from '../lib/helpers/db-helpers.js';
 import logger from '../lib/utils/logger.js';
 
 export const untrackCommand = new SlashCommandBuilder()

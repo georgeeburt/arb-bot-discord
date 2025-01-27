@@ -4,9 +4,9 @@ import {
   LAMPORTS_PER_SOL
 } from '@solana/web3.js';
 import { NATIVE_MINT } from '@solana/spl-token';
-import { CommandInteraction } from 'discord.js';
+import { DMChannel, Channel } from 'discord.js';
 import { SMB_PROGRAM_ID } from '../constants/program-constants.js';
-import sendTradeNotification from './discord-helpers.js';
+import { sendTradeNotification } from './discord-helpers.js';
 import connection from '../utils/solana.js';
 import { tradeEmbed } from '../utils/embedUtils.js';
 import logger from '../utils/logger.js';
@@ -18,7 +18,7 @@ const lastSignatures = new Map<string, string>();
 
 export const monitorTrades = async (
   pubKey: string,
-  interaction: CommandInteraction
+  channel: DMChannel | Channel
 ) => {
   const publicKey = new PublicKey(pubKey);
 
@@ -68,7 +68,7 @@ export const monitorTrades = async (
             block: transaction.slot
           });
 
-          await sendTradeNotification(arbEmbed, interaction);
+          await sendTradeNotification(arbEmbed, channel);
         }
       } catch (error) {
         logger.error(`Error processing transaction: ${error}`);
@@ -77,7 +77,7 @@ export const monitorTrades = async (
     return subscriptionId;
   } catch (error) {
     logger.error(`Error setting up account monitoring: ${error}`);
-    setTimeout(() => monitorTrades(pubKey, interaction), 5000);
+    setTimeout(() => monitorTrades(pubKey, channel), 5000);
   }
 };
 
@@ -123,7 +123,7 @@ export const checkIfArbTrade = (transaction: ParsedTransactionWithMeta) => {
 
 export const calculateArbProfit = (transaction: ParsedTransactionWithMeta) => {
   const initialSolBalance = transaction.meta?.preBalances[0] as number;
-  let initialWrappedSolBalance = Number(
+  const initialWrappedSolBalance = Number(
     transaction.meta?.preTokenBalances?.find(
       (balance) => balance.mint === NATIVE_MINT.toString()
     )?.uiTokenAmount.amount

@@ -1,5 +1,9 @@
 import { PublicKey } from '@solana/web3.js';
-import { SlashCommandBuilder, CommandInteraction } from 'discord.js';
+import {
+  SlashCommandBuilder,
+  CommandInteraction,
+  TextBasedChannel
+} from 'discord.js';
 import { monitorTrades } from '../lib/helpers/solana-helpers.js';
 import logger from '../lib/utils/logger.js';
 import {
@@ -31,7 +35,7 @@ export const track = async (interaction: CommandInteraction) => {
       PublicKey.isOnCurve(walletAddressToTrack);
     } catch (error) {
       return await interaction.reply({
-        content: 'Invalid Solana wallet address provided'
+        content: `Invalid Solana wallet address provided`
       });
     }
   }
@@ -39,6 +43,7 @@ export const track = async (interaction: CommandInteraction) => {
   try {
     const guildId = interaction.guildId;
     const channelId = interaction.channelId;
+    const channel = interaction.channel;
     const userId = interaction.user.id;
     const userData = await getUserSubscription(userId);
 
@@ -55,7 +60,7 @@ export const track = async (interaction: CommandInteraction) => {
     try {
       const subscriptionId = await monitorTrades(
         walletAddressToTrack,
-        interaction
+        channel as TextBasedChannel
       );
 
       await addUserSubscription({
@@ -72,7 +77,7 @@ export const track = async (interaction: CommandInteraction) => {
       });
 
       logger.info(
-        `User [${userId}] started tracking wallet: ${walletAddressToTrack} for user: ${userId}`
+        `User [${userId}] started tracking wallet: ${walletAddressToTrack}`
       );
     } catch (error) {
       logger.error(`Error setting up trade monitoring: ${error}`);

@@ -2,8 +2,11 @@ import db from '../drizzle/drizzle-service.js';
 import { and, eq } from 'drizzle-orm';
 import { subscriptions, websocketConnections } from '../drizzle/schema.js';
 import connection from '../utils/solana.js';
+import { client } from '../../bot.js';
 import logger from '../utils/logger.js';
 import type { UserTrackingData } from '../../../types/index.js';
+import { monitorTrades } from './solana-helpers.js';
+import { TextBasedChannel } from 'discord.js';
 
 export const getUserSubscription = async (userId: string) => {
   try {
@@ -93,5 +96,42 @@ export const removeUserSubscription = async (
     }
   } catch (error) {
     logger.error(`Error untracking wallet: ${error}`);
+  }
+};
+
+export const restoreWebsocketSubscriptions = async () => {
+  if (!client.isReady()) {
+    await new Promise((resolve) => client.once('ready', resolve));
+  }
+
+  const allSubscriptions = await db.query.subscriptions.findMany();
+
+  for (const subscription of allSubscriptions) {
+    try {
+      let channel: TextBasedChannel;
+
+      if (subscription.isDmTracking) {
+        const user = await client.users.fetch(subscription.userId);
+        channel = await user.createDM();
+      } else {
+        const fetchedChannel = await client.channels.fetch(
+          subscription.channelId as string
+        );
+        if (!fetchedChannel?.isTextBased()) {
+          throw new Error('Not a text channel');
+        }
+        channel = fetchedChannel;
+      }
+
+      await monitorTrades(subscription.walletAddress, channel);
+
+      logger.info(
+        `Restored websocket subscription for ${subscription.walletAddress}`
+      );
+    } catch (error) {
+      logger.error(
+        `Websocket restoration failed for ${subscription.walletAddress}: ${error}`
+      );
+    }
   }
 };
