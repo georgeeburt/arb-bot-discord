@@ -8,6 +8,7 @@ Arbi is a Discord bot which delivers real-time updates on arbitrage trades on So
 ## Installation
 
 > This project uses [pnpm](https://pnpm.io/), a fast, disk-efficient package manager. If you dont have `pnpm` installed, you can install it globally by running:
+
 > ```bash
 > npm install -g pnpm
 > ```
