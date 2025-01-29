@@ -15,6 +15,7 @@ export const getUserSubscription = async (userId: string) => {
     });
   } catch (error) {
     logger.error(`Error finding user data: ${error}`);
+    return null;
   }
 };
 
@@ -100,38 +101,52 @@ export const removeUserSubscription = async (
 };
 
 export const restoreWebsocketSubscriptions = async () => {
-  if (!client.isReady()) {
-    await new Promise((resolve) => client.once('ready', resolve));
-  }
-
-  const allSubscriptions = await db.query.subscriptions.findMany();
-
-  for (const subscription of allSubscriptions) {
-    try {
-      let channel: TextBasedChannel;
-
-      if (subscription.isDmTracking) {
-        const user = await client.users.fetch(subscription.userId);
-        channel = await user.createDM();
-      } else {
-        const fetchedChannel = await client.channels.fetch(
-          subscription.channelId as string
-        );
-        if (!fetchedChannel?.isTextBased()) {
-          throw new Error('Not a text channel');
-        }
-        channel = fetchedChannel;
-      }
-
-      await monitorTrades(subscription.walletAddress, channel);
-
-      logger.info(
-        `Restored websocket subscription for ${subscription.walletAddress}`
-      );
-    } catch (error) {
-      logger.error(
-        `Websocket restoration failed for ${subscription.walletAddress}: ${error}`
-      );
+  try {
+    if (!client.isReady()) {
+      await new Promise((resolve) => client.once('ready', resolve));
     }
+
+    const allSubscriptions = await db.query.subscriptions.findMany();
+
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const subscription of allSubscriptions) {
+      try {
+        let channel: TextBasedChannel;
+
+        if (subscription.isDmTracking) {
+          const user = await client.users.fetch(subscription.userId);
+          channel = await user.createDM();
+        } else {
+          const fetchedChannel = await client.channels.fetch(
+            subscription.channelId as string
+          );
+          if (!fetchedChannel?.isTextBased()) {
+            throw new Error(`Channel ${subscription.channelId} is not a text channel`);
+          }
+          channel = fetchedChannel;
+        }
+
+        await monitorTrades(subscription.walletAddress, channel);
+
+        successCount++;
+        logger.info(
+          `Restored websocket subscription for wallet ${subscription.walletAddress}`
+        );
+      } catch (error) {
+        failureCount++;
+        logger.error(
+          `Failed to restore websocket for wallet ${subscription.walletAddress}: ${error instanceof Error ? error.message : error}`
+        );
+        continue;
+      }
+    }
+
+    logger.info(`Websocket restoration complete. Success: ${successCount}, Failed: ${failureCount}`);
+
+  } catch (error) {
+    logger.error(`Critical error in websocket restoration: ${error instanceof Error ? error.message : error}`);
+    throw error;
   }
 };
