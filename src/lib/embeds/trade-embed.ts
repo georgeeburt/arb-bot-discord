@@ -7,7 +7,8 @@ export const tradeEmbed = ({
   signature,
   solBalance,
   wSolBalance,
-  profit,
+  solProfit,
+  usdcProfit,
   tradeTime,
   block
 }: TradeDetails) => {
@@ -18,7 +19,10 @@ export const tradeEmbed = ({
       `[View Transaction on Solscan](${formatSolscanUrl(signature)})`
     )
     .addFields(
-      { name: 'Total Profit', value: `\`${profit} SOL\`` },
+      { name: 'Total Profit', value: `\`${solProfit} SOL\`` },
+      ...(usdcProfit
+        ? [{ name: 'USDC Profit', value: `\`${usdcProfit} USDC\`` }]
+        : []),
       { name: 'Transaction Signature', value: `\`${signature}\`` },
       {
         name: 'SOL Balance',

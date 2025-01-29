@@ -5,6 +5,7 @@ import {
 } from '@solana/web3.js';
 import { NATIVE_MINT } from '@solana/spl-token';
 import { DMChannel, Channel } from 'discord.js';
+import BASE_MINTS from '../constants/base-mint-constants.js';
 import { SMB_PROGRAM_ID } from '../constants/program-constants.js';
 import { sendTradeNotification } from './discord-helpers.js';
 import connection from '../utils/solana.js';
@@ -57,13 +58,19 @@ export const monitorTrades = async (
         logger.info(`Is arbitrage: ${isArb}`);
 
         if (isArb) {
+          const arbProfit = calculateArbProfit(transaction);
+
+          const solProfit = typeof arbProfit === 'object' ? arbProfit.solProfit : arbProfit;
+          const usdcProfit = typeof arbProfit === 'object' ? arbProfit.usdcProfit : undefined;
+
           const arbEmbed = tradeEmbed({
             signature: lastSignature,
             solBalance: transaction.meta?.postBalances[0] as number,
             wSolBalance: transaction.meta?.postTokenBalances?.find(
               (balance) => balance.mint === NATIVE_MINT.toString()
             )?.uiTokenAmount.uiAmount as number,
-            profit: calculateArbProfit(transaction),
+            solProfit,
+            usdcProfit,
             tradeTime: new Date().toLocaleTimeString(),
             block: transaction.slot
           });
@@ -128,6 +135,11 @@ export const calculateArbProfit = (transaction: ParsedTransactionWithMeta) => {
       (balance) => balance.mint === NATIVE_MINT.toString()
     )?.uiTokenAmount.amount
   );
+  const initialUSDCBalance = Number(
+    transaction.meta?.preTokenBalances?.find(
+      (balance) => balance.mint === BASE_MINTS.usdc
+    )
+  );
 
   const postSolBalance = transaction.meta?.postBalances[0] as number;
   const postWrappedSolBalance = Number(
@@ -135,13 +147,30 @@ export const calculateArbProfit = (transaction: ParsedTransactionWithMeta) => {
       (balance) => balance.mint === NATIVE_MINT.toString()
     )?.uiTokenAmount.amount
   );
-  return (
-    (postSolBalance +
-      postWrappedSolBalance -
-      initialSolBalance -
-      initialWrappedSolBalance) /
-    LAMPORTS_PER_SOL
+  const postUSDCBalance = Number(
+    transaction.meta?.postTokenBalances?.find(
+      (balance) => balance.mint === BASE_MINTS.usdc
+    )
   );
+
+  if (!initialUSDCBalance || !postUSDCBalance) {
+    return (
+      (postSolBalance +
+        postWrappedSolBalance -
+        initialSolBalance -
+        initialWrappedSolBalance) /
+      LAMPORTS_PER_SOL
+    );
+  } else {
+    return {
+      solProfit:
+        postSolBalance +
+        postWrappedSolBalance -
+        initialSolBalance -
+        initialWrappedSolBalance,
+      usdcProfit: postUSDCBalance - initialUSDCBalance
+    };
+  }
 };
 
 export const formatSolscanUrl = (signature: string) => {
