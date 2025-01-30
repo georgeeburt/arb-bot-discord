@@ -19,7 +19,10 @@ export const tradeEmbed = ({
       `[View Transaction on Solscan](${formatSolscanUrl(signature)})`
     )
     .addFields(
-      { name: 'Total Profit', value: `\`${solProfit} SOL\`` },
+      {
+        name: 'Total Profit',
+        value: `\`${solProfit < 0.001 ? solProfit.toFixed(8) : solProfit.toFixed(4)} SOL\``
+      },
       ...(usdcProfit
         ? [{ name: 'USDC Profit', value: `\`${usdcProfit} USDC\`` }]
         : []),

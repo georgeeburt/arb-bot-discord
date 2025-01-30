@@ -16,8 +16,8 @@ export type TradeDetails = {
   signature: string;
   solBalance: string | number;
   wSolBalance: number;
-  solProfit: string | number;
-  usdcProfit?: string | number;
+  solProfit: number;
+  usdcProfit?: number;
   tradeTime: string;
   block: number;
 };
