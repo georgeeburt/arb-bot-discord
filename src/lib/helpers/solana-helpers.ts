@@ -12,80 +12,83 @@ import connection from '../utils/solana.js';
 import { tradeEmbed } from '../embeds/trade-embed.js';
 import logger from '../utils/logger.js';
 import dotenv from 'dotenv';
-
 dotenv.config();
-
-const lastSignatures = new Map<string, string>();
 
 export const monitorTrades = async (
   pubKey: string,
   channel: DMChannel | Channel
 ) => {
   const publicKey = new PublicKey(pubKey);
+  const processedSignatures = new Set<string>();
 
-  try {
-    const subscriptionId = connection.onAccountChange(publicKey, async () => {
-      try {
-        const signatures = await connection.getSignaturesForAddress(publicKey, {
-          limit: 1
+  const processTransaction = async (signature: string) => {
+    if (processedSignatures.has(signature)) return;
+
+    try {
+      const transaction = await connection.getParsedTransaction(signature, {
+        commitment: 'confirmed',
+        maxSupportedTransactionVersion: 0
+      });
+
+      if (!transaction || !transaction.meta) return;
+
+      const isArb = checkIfArbTrade(transaction);
+      if (isArb) {
+        const arbProfit = calculateArbProfit(transaction);
+
+        const arbEmbed = tradeEmbed({
+          signature,
+          solBalance: transaction.meta.postBalances[0] as number,
+          wSolBalance: transaction.meta.postTokenBalances?.find(
+            (balance) => balance.mint === NATIVE_MINT.toString()
+          )?.uiTokenAmount.uiAmount as number,
+          solProfit: typeof arbProfit === 'object' ? arbProfit.solProfit : arbProfit,
+          usdcProfit: typeof arbProfit === 'object' ? arbProfit.usdcProfit : undefined,
+          tradeTime: new Date(transaction.blockTime! * 1000).toLocaleTimeString(),
+          block: transaction.slot
         });
 
-        const lastSignature = signatures[0].signature;
-
-        if (
-          !signatures.length ||
-          lastSignature === lastSignatures.get(pubKey)
-        ) {
-          return;
-        }
-
-        lastSignatures.set(pubKey, lastSignature);
-        logger.info(`\nProcessing new transaction: ${lastSignature}`);
-
-        const transaction = await connection.getParsedTransaction(
-          lastSignature,
-          {
-            commitment: 'confirmed',
-            maxSupportedTransactionVersion: 0
-          }
-        );
-
-        if (!transaction) {
-          return;
-        }
-
-        const isArb = checkIfArbTrade(transaction);
-        logger.info(`Is arbitrage: ${isArb}`);
-
-        if (isArb) {
-          const arbProfit = calculateArbProfit(transaction);
-
-          const solProfit = typeof arbProfit === 'object' ? arbProfit.solProfit : arbProfit;
-          const usdcProfit = typeof arbProfit === 'object' ? arbProfit.usdcProfit : undefined;
-
-          const arbEmbed = tradeEmbed({
-            signature: lastSignature,
-            solBalance: transaction.meta?.postBalances[0] as number,
-            wSolBalance: transaction.meta?.postTokenBalances?.find(
-              (balance) => balance.mint === NATIVE_MINT.toString()
-            )?.uiTokenAmount.uiAmount as number,
-            solProfit,
-            usdcProfit,
-            tradeTime: new Date().toLocaleTimeString(),
-            block: transaction.slot
-          });
-
-          await sendTradeNotification(arbEmbed, channel);
-        }
-      } catch (error) {
-        logger.error(`Error processing transaction: ${error}`);
+        await sendTradeNotification(arbEmbed, channel);
+        processedSignatures.add(signature);
       }
-    });
-    return subscriptionId;
-  } catch (error) {
-    logger.error(`Error setting up account monitoring: ${error}`);
-    setTimeout(() => monitorTrades(pubKey, channel), 5000);
-  }
+    } catch (error) {
+      logger.error(`Transaction processing error: ${error}`);
+    }
+  };
+
+  const pollRecentTransactions = async () => {
+    try {
+      const signatures = await connection.getSignaturesForAddress(
+        publicKey,
+        { limit: 10 }
+      );
+
+      for (const sigInfo of signatures.reverse()) {
+        await processTransaction(sigInfo.signature);
+      }
+    } catch (error) {
+      logger.error(`Polling error: ${error}`);
+    }
+  };
+
+  const subscriptionId = connection.onAccountChange(
+    publicKey,
+    async () => {
+      await pollRecentTransactions();
+    },
+    { commitment: 'confirmed' }
+  );
+
+  const pollingInterval = setInterval(pollRecentTransactions, 30000);
+
+  await pollRecentTransactions();
+
+  logger.info(`Monitoring trades for ${pubKey}, subscription ID: ${subscriptionId}`);
+
+  return {
+    subscriptionId,
+    stopPolling: () => clearInterval(pollingInterval)
+  };
 };
 
 export const getAllInstructions = (transaction: ParsedTransactionWithMeta) => {

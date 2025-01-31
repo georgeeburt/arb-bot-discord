@@ -66,7 +66,7 @@ export const track = async (interaction: CommandInteraction) => {
       await addUserSubscription({
         userId,
         walletAddress: walletAddressToTrack,
-        websocketId: subscriptionId as number,
+        websocketId: subscriptionId.subscriptionId as number,
         guildId,
         channelId,
         isDmTracking
