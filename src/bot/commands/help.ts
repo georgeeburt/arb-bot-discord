@@ -1,5 +1,5 @@
 import { CommandInteraction, SlashCommandBuilder } from 'discord.js';
-import { helpEmbed } from '../lib/embeds/help-embed.js';
+import { helpEmbed } from '../embeds/help-embed.js';
 
 export const helpCommand = new SlashCommandBuilder()
   .setName('help')

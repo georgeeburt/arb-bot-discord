@@ -1,8 +1,8 @@
 import { EmbedBuilder, REST, Routes, Channel } from 'discord.js';
-import { client } from '../../bot.js';
-import { trackCommand } from '../../commands/track.js';
-import { untrackCommand } from '../../commands/untrack.js';
-import { helpCommand } from '../../commands/help.js';
+import { client } from '../../bot/bot.js';
+import { trackCommand } from '../../bot/commands/track.js';
+import { untrackCommand } from '../../bot/commands/untrack.js';
+import { helpCommand } from '../../bot/commands/help.js';
 import logger from '../utils/logger.js';
 
 export const sendTradeNotification = async (

@@ -4,12 +4,12 @@ import {
   CommandInteraction,
   TextBasedChannel
 } from 'discord.js';
-import { monitorTrades } from '../lib/helpers/solana-helpers.js';
-import logger from '../lib/utils/logger.js';
 import {
   addUserSubscription,
   getUserSubscription
-} from '../lib/helpers/db-helpers.js';
+} from '../../lib/helpers/db-helpers.js';
+import { monitorTrades } from '../../lib/helpers/solana-helpers.js';
+import logger from '../../lib/utils/logger.js';
 
 export const trackCommand = new SlashCommandBuilder()
   .setName('track')

@@ -1,8 +1,8 @@
-import { client } from './bot.js';
+import { client } from './bot/bot.js';
 import { registerCommands } from './lib/helpers/discord-helpers.js';
-import { track } from './commands/track.js';
-import { untrack } from './commands/untrack.js';
-import { help } from './commands/help.js';
+import { track } from './bot/commands/track.js';
+import { untrack } from './bot/commands/untrack.js';
+import { help } from './bot/commands/help.js';
 import { restoreWebsocketSubscriptions } from './lib/helpers/db-helpers.js';
 import logger from './lib/utils/logger.js';
 
