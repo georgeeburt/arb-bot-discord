@@ -1,7 +1,7 @@
 import { EmbedBuilder } from 'discord.js';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { formatSolscanUrl } from '../../lib/helpers/solana-helpers.js';
 import type { TradeDetails } from '../../../types/index.js';
-import { formatSolscanUrl } from '../helpers/solana-helpers.js';
 
 export const tradeEmbed = ({
   signature,

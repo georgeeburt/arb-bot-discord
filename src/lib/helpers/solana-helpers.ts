@@ -87,7 +87,7 @@ export const monitorTrades = async (
   );
 
   logger.info(
-    `Monitoring trades for ${pubKey}, subscription ID: ${subscriptionId}`
+    `Started monitoring trades for ${pubKey}, subscription ID: ${subscriptionId}`
   );
 
   return subscriptionId;
