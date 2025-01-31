@@ -42,9 +42,13 @@ export const monitorTrades = async (
           wSolBalance: transaction.meta.postTokenBalances?.find(
             (balance) => balance.mint === NATIVE_MINT.toString()
           )?.uiTokenAmount.uiAmount as number,
-          solProfit: typeof arbProfit === 'object' ? arbProfit.solProfit : arbProfit,
-          usdcProfit: typeof arbProfit === 'object' ? arbProfit.usdcProfit : undefined,
-          tradeTime: new Date(transaction.blockTime! * 1000).toLocaleTimeString(),
+          solProfit:
+            typeof arbProfit === 'object' ? arbProfit.solProfit : arbProfit,
+          usdcProfit:
+            typeof arbProfit === 'object' ? arbProfit.usdcProfit : undefined,
+          tradeTime: new Date(
+            transaction.blockTime! * 1000
+          ).toLocaleTimeString(),
           block: transaction.slot
         });
 
@@ -56,39 +60,37 @@ export const monitorTrades = async (
     }
   };
 
-  const pollRecentTransactions = async () => {
-    try {
-      const signatures = await connection.getSignaturesForAddress(
-        publicKey,
-        { limit: 10 }
-      );
-
-      for (const sigInfo of signatures.reverse()) {
-        await processTransaction(sigInfo.signature);
-      }
-    } catch (error) {
-      logger.error(`Polling error: ${error}`);
-    }
-  };
-
   const subscriptionId = connection.onAccountChange(
     publicKey,
     async () => {
-      await pollRecentTransactions();
+      try {
+        const signatures = await connection.getSignaturesForAddress(publicKey, {
+          limit: 10
+        });
+
+        const newSignatures = signatures.filter(
+          (sig) =>
+            sig.signature !== undefined &&
+            !processedSignatures.has(sig.signature)
+        );
+
+        if (newSignatures.length > 0) {
+          for (const signature of newSignatures.reverse()) {
+            await processTransaction(signature.signature!);
+          }
+        }
+      } catch (error) {
+        logger.error(`Account change error: ${error}`);
+      }
     },
     { commitment: 'confirmed' }
   );
 
-  const pollingInterval = setInterval(pollRecentTransactions, 30000);
+  logger.info(
+    `Monitoring trades for ${pubKey}, subscription ID: ${subscriptionId}`
+  );
 
-  await pollRecentTransactions();
-
-  logger.info(`Monitoring trades for ${pubKey}, subscription ID: ${subscriptionId}`);
-
-  return {
-    subscriptionId,
-    stopPolling: () => clearInterval(pollingInterval)
-  };
+  return subscriptionId;
 };
 
 export const getAllInstructions = (transaction: ParsedTransactionWithMeta) => {

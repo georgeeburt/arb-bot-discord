@@ -1,6 +1,5 @@
 import { Connection } from '@solana/web3.js';
 import dotenv from 'dotenv';
-
 dotenv.config();
 
 const connection = new Connection(process.env.RPC_ENDPOINT as string, {

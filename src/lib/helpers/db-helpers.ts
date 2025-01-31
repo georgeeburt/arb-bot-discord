@@ -1,7 +1,7 @@
 import db from '../drizzle/drizzle-service.js';
+import connection from '../utils/solana.js';
 import { client } from '../../bot.js';
 import { and, eq } from 'drizzle-orm';
-import connection from '../utils/solana.js';
 import { subscriptions, websocketConnections } from '../drizzle/schema.js';
 import { monitorTrades } from './solana-helpers.js';
 import logger from '../utils/logger.js';
@@ -25,7 +25,7 @@ export const addUserSubscription = async ({
   guildId,
   channelId,
   isDmTracking,
-  websocketId
+  subscriptionId
 }: UserTrackingData) => {
   try {
     await db
@@ -58,7 +58,7 @@ export const addUserSubscription = async ({
         .insert(websocketConnections)
         .values({
           walletAddress,
-          websocketId
+          websocketId: subscriptionId
         })
         .onConflictDoNothing();
     }
@@ -192,7 +192,7 @@ export const restoreWebsocketSubscriptions = async () => {
             if (subscriptionId) {
               await db
                 .update(websocketConnections)
-                .set({ websocketId: subscriptionId.subscriptionId })
+                .set({ websocketId: subscriptionId })
                 .where(
                   eq(
                     websocketConnections.walletAddress,

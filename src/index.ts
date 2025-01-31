@@ -1,10 +1,10 @@
+import { client } from './bot.js';
+import { registerCommands } from './lib/helpers/discord-helpers.js';
 import { track } from './commands/track.js';
 import { untrack } from './commands/untrack.js';
-import { client } from './bot.js';
-import { restoreWebsocketSubscriptions } from './lib/helpers/db-helpers.js';
-import { registerCommands } from './lib/helpers/discord-helpers.js';
-import logger from './lib/utils/logger.js';
 import { help } from './commands/help.js';
+import { restoreWebsocketSubscriptions } from './lib/helpers/db-helpers.js';
+import logger from './lib/utils/logger.js';
 
 client.once('ready', async () => {
   try {

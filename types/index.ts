@@ -6,7 +6,7 @@ export type SubscriptionInfo = {
 export type UserTrackingData = {
   userId: string;
   walletAddress: string;
-  websocketId: number;
+  subscriptionId: number;
   isDmTracking: boolean;
   guildId: string | null;
   channelId?: string | null;

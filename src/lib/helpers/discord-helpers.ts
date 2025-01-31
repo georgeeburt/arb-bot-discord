@@ -1,7 +1,7 @@
 import { EmbedBuilder, REST, Routes, Channel } from 'discord.js';
+import { client } from '../../bot.js';
 import { trackCommand } from '../../commands/track.js';
 import { untrackCommand } from '../../commands/untrack.js';
-import { client } from '../../bot.js';
 import { helpCommand } from '../../commands/help.js';
 import logger from '../utils/logger.js';
 

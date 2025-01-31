@@ -2,7 +2,6 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { subscriptions, websocketConnections } from './schema.js';
 import postgres from 'pg';
 import dotenv from 'dotenv';
-
 dotenv.config();
 
 const dbUrl =
