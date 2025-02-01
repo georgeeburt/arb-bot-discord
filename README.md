@@ -5,6 +5,12 @@ Arbi is a Discord bot which delivers real-time updates on arbitrage trades on So
 [![Discord](https://img.shields.io/discord/1331606919512850443?logo=discord)](https://discord.gg/VSMPyfC6vC)
 [![Code Style](https://img.shields.io/badge/code%20style-prettier-%23FF69B4?style=flat&labelColor=gray)](https://github.com/prettier/prettier)
 
+## Prerequisites
+
+- [Node.js v18+](https://nodejs.org/)
+- [pnpm](https://pnpm.io/)
+- [PostgreSQL](https://www.postgresql.org/download/)
+
 ## Installation
 
 > This project uses [pnpm](https://pnpm.io/), a fast, disk-efficient package manager. If you dont have `pnpm` installed, you can install it globally by running:
@@ -57,7 +63,7 @@ pnpm dev
 
 | Variable                  | Description                                    |
 |---------------------------|------------------------------------------------|
-| `DISCORD_TOKEN`           | Your Discorb bot token secret.                 |
+| `DISCORD_TOKEN`           | Your Discord bot token secret.                 |
 | `DATABASE_URL`            | Your Postgres DB URL.                          |
 | `RPC_ENDPOINT`            | Your Solana RPC endpoint.                      |
 | `RPC_WSS_ENDPOINT`        | Your Solana Websocket RPC endpoint.            |
