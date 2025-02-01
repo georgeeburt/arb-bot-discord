@@ -1,9 +1,10 @@
 import { EmbedBuilder } from 'discord.js';
+import fetchUsdProfit from '../../lib/services/fetch-usd-profit.js';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { formatSolscanUrl } from '../../lib/helpers/solana-helpers.js';
 import type { TradeDetails } from '../../../types/index.js';
 
-export const tradeEmbed = ({
+export const tradeEmbed = async ({
   signature,
   solBalance,
   wSolBalance,
@@ -21,7 +22,7 @@ export const tradeEmbed = ({
     .addFields(
       {
         name: 'Total Profit',
-        value: `\`${solProfit < 0.001 ? solProfit.toFixed(8) : solProfit.toFixed(4)} SOL\``
+        value: `\`${solProfit < 0.001 ? solProfit.toFixed(8) : solProfit.toFixed(4)} SOL | ($${(await fetchUsdProfit(solProfit))?.toFixed(3)})\``
       },
       ...(usdcProfit
         ? [{ name: 'USDC Profit', value: `\`${usdcProfit} USDC\`` }]

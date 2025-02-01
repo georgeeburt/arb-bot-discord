@@ -52,7 +52,7 @@ export const monitorTrades = async (
           block: transaction.slot
         });
 
-        await sendTradeNotification(arbEmbed, channel);
+        await sendTradeNotification(await arbEmbed, channel);
         processedSignatures.add(signature);
       }
     } catch (error) {
