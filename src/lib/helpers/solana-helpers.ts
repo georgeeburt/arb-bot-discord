@@ -160,20 +160,14 @@ export const calculateArbProfit = (transaction: ParsedTransactionWithMeta) => {
 
   if (!initialUSDCBalance || !postUSDCBalance) {
     return (
-      postSolBalance +
-      postWrappedSolBalance -
-      initialSolBalance -
-      initialWrappedSolBalance +
-      0.001 / LAMPORTS_PER_SOL
+      (postSolBalance + postWrappedSolBalance + 0.001) / LAMPORTS_PER_SOL -
+      (initialSolBalance - initialWrappedSolBalance) / LAMPORTS_PER_SOL
     );
   } else {
     return {
       solProfit:
-        postSolBalance +
-        postWrappedSolBalance -
-        initialSolBalance -
-        initialWrappedSolBalance +
-        0.001 / LAMPORTS_PER_SOL,
+        (postSolBalance + postWrappedSolBalance + 0.001) / LAMPORTS_PER_SOL -
+        (initialSolBalance - initialWrappedSolBalance) / LAMPORTS_PER_SOL,
       usdcProfit: postUSDCBalance - initialUSDCBalance
     };
   }

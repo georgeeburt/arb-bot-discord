@@ -22,7 +22,7 @@ export const tradeEmbed = async ({
     .addFields(
       {
         name: 'Total Profit',
-        value: `\`${solProfit < 0.001 ? solProfit.toFixed(8) : solProfit.toFixed(4)} SOL | ($${(await fetchUsdProfit(solProfit))?.toFixed(3)})\``
+        value: `\`${(solProfit || 0) < 0.001 ? (solProfit || 0).toFixed(8) : (solProfit || 0).toFixed(4)} SOL | ($${((await fetchUsdProfit(solProfit)) || 0).toFixed(4)})\``
       },
       ...(usdcProfit
         ? [{ name: 'USDC Profit', value: `\`${usdcProfit} USDC\`` }]
