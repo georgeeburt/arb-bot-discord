@@ -135,22 +135,23 @@ export const checkIfArbTrade = (transaction: ParsedTransactionWithMeta) => {
 
 export const calculateArbProfit = (transaction: ParsedTransactionWithMeta) => {
   const initialSolBalance = transaction.meta?.preBalances[0] as number;
+  const postSolBalance = transaction.meta?.postBalances[0] as number;
+
   const initialWrappedSolBalance = Number(
     transaction.meta?.preTokenBalances?.find(
       (balance) => balance.mint === NATIVE_MINT.toString()
     )?.uiTokenAmount.amount
   );
-  const initialUSDCBalance = Number(
-    transaction.meta?.preTokenBalances?.find(
-      (balance) => balance.mint === BASE_MINTS.usdc
-    )
-  );
-
-  const postSolBalance = transaction.meta?.postBalances[0] as number;
   const postWrappedSolBalance = Number(
     transaction.meta?.postTokenBalances?.find(
       (balance) => balance.mint === NATIVE_MINT.toString()
     )?.uiTokenAmount.amount
+  );
+
+  const initialUSDCBalance = Number(
+    transaction.meta?.preTokenBalances?.find(
+      (balance) => balance.mint === BASE_MINTS.usdc
+    )
   );
   const postUSDCBalance = Number(
     transaction.meta?.postTokenBalances?.find(
@@ -160,14 +161,19 @@ export const calculateArbProfit = (transaction: ParsedTransactionWithMeta) => {
 
   if (!initialUSDCBalance || !postUSDCBalance) {
     return (
-      (postSolBalance + postWrappedSolBalance + 0.001) / LAMPORTS_PER_SOL -
-      (initialSolBalance - initialWrappedSolBalance) / LAMPORTS_PER_SOL
+      postSolBalance / LAMPORTS_PER_SOL +
+      postWrappedSolBalance / LAMPORTS_PER_SOL -
+      (initialSolBalance / LAMPORTS_PER_SOL +
+        initialWrappedSolBalance / LAMPORTS_PER_SOL) +
+      0.001
     );
   } else {
     return {
       solProfit:
-        (postSolBalance + postWrappedSolBalance + 0.001) / LAMPORTS_PER_SOL -
-        (initialSolBalance - initialWrappedSolBalance) / LAMPORTS_PER_SOL,
+        postSolBalance +
+        postWrappedSolBalance -
+        (initialSolBalance + initialWrappedSolBalance) / LAMPORTS_PER_SOL +
+        0.001,
       usdcProfit: postUSDCBalance - initialUSDCBalance
     };
   }

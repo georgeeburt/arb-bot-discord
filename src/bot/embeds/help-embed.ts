@@ -15,8 +15,7 @@ export const helpEmbed = () => {
       },
       {
         name: '∕ Commands Usage',
-        value:
-          `**\`/track <wallet address>\`** - The track command starts tracking the specified Solana wallet address for successful arbitrage lands.
+        value: `**\`/track <wallet address>\`** - The track command starts tracking the specified Solana wallet address for successful arbitrage lands.
 
           **\`/untrack\`** - The untrack command untracks the currently tracked wallet. You will need to use this command before tracking a new wallet.
 
