@@ -1,17 +1,19 @@
 import {
   PublicKey,
   ParsedTransactionWithMeta,
+  ParsedInstruction,
   LAMPORTS_PER_SOL
 } from '@solana/web3.js';
-import { NATIVE_MINT } from '@solana/spl-token';
-import { DMChannel, Channel } from 'discord.js';
-import BASE_MINTS from '../constants/base-mint-constants.js';
-import { SMB_PROGRAM_ID } from '../constants/program-constants.js';
-import { sendTradeNotification } from './discord-helpers.js';
 import connection from '../utils/solana.js';
+import { NATIVE_MINT } from '@solana/spl-token';
+import BASE_MINTS from '../constants/base-mints.js';
+import { SMB_PROGRAM_ID } from '../constants/custom-programs.js';
+import { NEXTBLOCK_ACCOUNTS } from '../constants/nextblock-accounts.js';
+import { sendTradeNotification } from './discord-helpers.js';
 import { tradeEmbed } from '../../bot/embeds/trade-embed.js';
 import logger from '../utils/logger.js';
 import dotenv from 'dotenv';
+import type { DMChannel, Channel } from 'discord.js';
 dotenv.config();
 
 export const monitorTrades = async (
@@ -35,7 +37,7 @@ export const monitorTrades = async (
       const isArb = checkIfArbTrade(transaction);
       if (isArb) {
         const arbProfit = calculateArbProfit(transaction);
-
+        const isNextBlockArb = isUsingNextblock(transaction);
         const arbEmbed = tradeEmbed({
           signature,
           solBalance: transaction.meta.postBalances[0] as number,
@@ -49,7 +51,8 @@ export const monitorTrades = async (
           tradeTime: new Date(
             transaction.blockTime! * 1000
           ).toLocaleTimeString(),
-          block: transaction.slot
+          block: transaction.slot,
+          isNextBlockArb,
         });
 
         await sendTradeNotification(await arbEmbed, channel);
@@ -159,24 +162,42 @@ export const calculateArbProfit = (transaction: ParsedTransactionWithMeta) => {
     )
   );
 
+  const isNextblockArb = isUsingNextblock(transaction);
+
   if (!initialUSDCBalance || !postUSDCBalance) {
     return (
       postSolBalance / LAMPORTS_PER_SOL +
       postWrappedSolBalance / LAMPORTS_PER_SOL -
       (initialSolBalance / LAMPORTS_PER_SOL +
         initialWrappedSolBalance / LAMPORTS_PER_SOL) +
-      0.001
+      (isNextblockArb ? 0 : 0.001)
     );
   } else {
     return {
       solProfit:
-        postSolBalance +
-        postWrappedSolBalance -
-        (initialSolBalance + initialWrappedSolBalance) / LAMPORTS_PER_SOL +
-        0.001,
+        postSolBalance / LAMPORTS_PER_SOL +
+        postWrappedSolBalance / LAMPORTS_PER_SOL -
+        (initialSolBalance / LAMPORTS_PER_SOL +
+          initialWrappedSolBalance / LAMPORTS_PER_SOL) +
+        (isNextblockArb ? 0 : 0.001),
       usdcProfit: postUSDCBalance - initialUSDCBalance
     };
   }
+};
+
+export const isUsingNextblock = (transaction: ParsedTransactionWithMeta) => {
+  const instructions = getAllInstructions(transaction);
+
+  return instructions.some((ix) => {
+    if (
+      'parsed' in ix &&
+      (ix as ParsedInstruction).parsed?.type === 'transfer'
+    ) {
+      const { destination } = (ix as ParsedInstruction).parsed.info;
+      return NEXTBLOCK_ACCOUNTS.has(destination);
+    }
+    return false;
+  });
 };
 
 export const formatSolscanUrl = (signature: string) => {

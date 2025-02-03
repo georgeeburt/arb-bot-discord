@@ -20,4 +20,5 @@ export type TradeDetails = {
   usdcProfit?: number;
   tradeTime: string;
   block: number;
+  isNextBlockArb?: boolean;
 };
