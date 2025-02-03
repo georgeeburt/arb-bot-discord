@@ -30,7 +30,7 @@ export const tradeEmbed = async ({
         ? [{ name: 'USDC Profit', value: `\`${usdcProfit} USDC\`` }]
         : []),
       { name: 'Transaction Signature', value: `\`${signature}\`` },
-      { name: 'Provider', value: `\`${isNextBlockArb ? 'NextBlock' : 'Jito'}\`` },
+      { name: 'Provider', value: `\`${isNextBlockArb ? 'NextBlock' : 'Jito'}\``, inline: true },
       {
         name: 'SOL Balance',
         value: `\`${(Number(solBalance) / LAMPORTS_PER_SOL).toFixed(4)} SOL\``,
