@@ -20,7 +20,11 @@ export type TradeDetails = {
   usdcProfit?: number;
   tradeTime: string;
   block: number;
-  isNextBlockArb?: boolean;
-  isFastArb?: boolean;
-  isTemporalArb?: boolean;
+  provider: ProviderName;
 };
+
+export type ProviderDetails = {
+  accounts: Set<string>;
+ };
+
+export type ProviderName = 'Fast' | 'Temporal' | 'NextBlock' | 'Jito';

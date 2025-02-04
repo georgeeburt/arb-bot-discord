@@ -8,14 +8,13 @@ import connection from '../utils/solana.js';
 import { NATIVE_MINT } from '@solana/spl-token';
 import BASE_MINTS from '../constants/base-mints.js';
 import { SMB_PROGRAM_ID } from '../constants/custom-programs.js';
-import { NEXTBLOCK_ACCOUNTS } from '../constants/nextblock-accounts.js';
-import { FAST_ACCOUNTS } from '../constants/fast-accounts.js';
+import { PROVIDERS } from '../constants/provider-accounts.js';
 import { sendTradeNotification } from './discord-helpers.js';
 import { tradeEmbed } from '../../bot/embeds/trade-embed.js';
 import logger from '../utils/logger.js';
 import dotenv from 'dotenv';
 import type { DMChannel, Channel } from 'discord.js';
-import { TEMPORAL_ACCOUNTS } from '../constants/temporal-accounts.js';
+import { ProviderName } from '../../../types/index.js';
 dotenv.config();
 
 export const monitorTrades = async (
@@ -39,9 +38,7 @@ export const monitorTrades = async (
       const isArb = checkIfArbTrade(transaction);
       if (isArb) {
         const arbProfit = calculateArbProfit(transaction);
-        const isNextBlockArb = isUsingNextblock(transaction);
-        const isFastArb = isUsingFast(transaction);
-        const isTemporalArb = isUsingTemporal(transaction);
+        const provider = getArbProvider(transaction);
         const arbEmbed = tradeEmbed({
           signature,
           solBalance: transaction.meta.postBalances[0] as number,
@@ -56,9 +53,7 @@ export const monitorTrades = async (
             transaction.blockTime! * 1000
           ).toLocaleTimeString(),
           block: transaction.slot,
-          isNextBlockArb,
-          isFastArb,
-          isTemporalArb
+          provider
         });
 
         await sendTradeNotification(await arbEmbed, channel);
@@ -168,7 +163,7 @@ export const calculateArbProfit = (transaction: ParsedTransactionWithMeta) => {
     )
   );
 
-  const isNextblockArb = isUsingNextblock(transaction);
+  const provider = getArbProvider(transaction);
 
   if (!initialUSDCBalance || !postUSDCBalance) {
     return (
@@ -176,7 +171,7 @@ export const calculateArbProfit = (transaction: ParsedTransactionWithMeta) => {
       postWrappedSolBalance / LAMPORTS_PER_SOL -
       (initialSolBalance / LAMPORTS_PER_SOL +
         initialWrappedSolBalance / LAMPORTS_PER_SOL) +
-      (isNextblockArb ? 0 : 0.001)
+      (provider === 'Jito' ? 0.001 : 0)
     );
   } else {
     return {
@@ -185,55 +180,36 @@ export const calculateArbProfit = (transaction: ParsedTransactionWithMeta) => {
         postWrappedSolBalance / LAMPORTS_PER_SOL -
         (initialSolBalance / LAMPORTS_PER_SOL +
           initialWrappedSolBalance / LAMPORTS_PER_SOL) +
-        (isNextblockArb ? 0 : 0.001),
+        (provider === 'Jito' ? 0.001 : 0),
       usdcProfit: postUSDCBalance - initialUSDCBalance
     };
   }
 };
 
-export const isUsingNextblock = (transaction: ParsedTransactionWithMeta) => {
+export const getArbProvider = (
+  transaction: ParsedTransactionWithMeta
+): ProviderName => {
   const instructions = getAllInstructions(transaction);
 
-  return instructions.some((ix) => {
+  for (const provider in PROVIDERS) {
+    const providerAccounts = PROVIDERS[provider as ProviderName].accounts;
+
     if (
-      'parsed' in ix &&
-      (ix as ParsedInstruction).parsed?.type === 'transfer'
+      instructions.some((ix) => {
+        if (
+          'parsed' in ix &&
+          (ix as ParsedInstruction).parsed?.type === 'transfer'
+        ) {
+          const { destination } = (ix as ParsedInstruction).parsed.info;
+          return providerAccounts.has(destination);
+        }
+        return false;
+      })
     ) {
-      const { destination } = (ix as ParsedInstruction).parsed.info;
-      return NEXTBLOCK_ACCOUNTS.has(destination);
+      return provider as ProviderName;
     }
-    return false;
-  });
-};
-
-export const isUsingFast = (transaction: ParsedTransactionWithMeta) => {
-  const instructions = getAllInstructions(transaction);
-
-  return instructions.some((ix) => {
-    if (
-      'parsed' in ix &&
-      (ix as ParsedInstruction).parsed?.type === 'transfer'
-    ) {
-      const { destination } = (ix as ParsedInstruction).parsed.info;
-      return FAST_ACCOUNTS.has(destination);
-    }
-    return false;
-  });
-};
-
-export const isUsingTemporal = (transaction: ParsedTransactionWithMeta) => {
-  const instructions = getAllInstructions(transaction);
-
-  return instructions.some((ix) => {
-    if (
-      'parsed' in ix &&
-      (ix as ParsedInstruction).parsed?.type === 'transfer'
-    ) {
-      const { destination } = (ix as ParsedInstruction).parsed.info;
-      return TEMPORAL_ACCOUNTS.has(destination);
-    }
-    return false;
-  });
+  }
+  return 'Jito';
 };
 
 export const formatSolscanUrl = (signature: string) => {
