@@ -26,7 +26,6 @@ export const tradeEmbed = async ({
         value: `\`${(solProfit || 0) < 0.001 ? (solProfit || 0).toFixed(8) : (solProfit || 0).toFixed(4)} SOL | ($${((await fetchUsdProfit(solProfit)) || 0).toFixed(4)})\``
       },
       ...(usdcProfit
-
         ? [{ name: 'USDC Profit', value: `\`${usdcProfit} USDC\`` }]
         : []),
       { name: 'Transaction Signature', value: `\`${signature}\`` },
