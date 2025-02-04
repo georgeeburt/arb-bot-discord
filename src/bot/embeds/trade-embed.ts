@@ -13,7 +13,8 @@ export const tradeEmbed = async ({
   tradeTime,
   block,
   isNextBlockArb,
-  isFastArb
+  isFastArb,
+  isTemporalArb
 }: TradeDetails) => {
   return new EmbedBuilder()
     .setTitle('🔮 Arbitrage Trade Detected 🔮')
@@ -32,7 +33,7 @@ export const tradeEmbed = async ({
       { name: 'Transaction Signature', value: `\`${signature}\`` },
       {
         name: 'Provider',
-        value: `\`${isNextBlockArb ? 'NextBlock' : isFastArb ? 'Fast' : 'Jito'}\``,
+        value: `\`${isNextBlockArb ? 'NextBlock' : isFastArb ? 'Fast' : isTemporalArb ? 'Temporal' : 'Jito'}\``,
         inline: true
       },
       {

@@ -15,6 +15,7 @@ import { tradeEmbed } from '../../bot/embeds/trade-embed.js';
 import logger from '../utils/logger.js';
 import dotenv from 'dotenv';
 import type { DMChannel, Channel } from 'discord.js';
+import { TEMPORAL_ACCOUNTS } from '../constants/temporal-accounts.js';
 dotenv.config();
 
 export const monitorTrades = async (
@@ -40,6 +41,7 @@ export const monitorTrades = async (
         const arbProfit = calculateArbProfit(transaction);
         const isNextBlockArb = isUsingNextblock(transaction);
         const isFastArb = isUsingFast(transaction);
+        const isTemporalArb = isUsingTemporal(transaction);
         const arbEmbed = tradeEmbed({
           signature,
           solBalance: transaction.meta.postBalances[0] as number,
@@ -55,7 +57,8 @@ export const monitorTrades = async (
           ).toLocaleTimeString(),
           block: transaction.slot,
           isNextBlockArb,
-          isFastArb
+          isFastArb,
+          isTemporalArb
         });
 
         await sendTradeNotification(await arbEmbed, channel);
@@ -213,6 +216,21 @@ export const isUsingFast = (transaction: ParsedTransactionWithMeta) => {
     ) {
       const { destination } = (ix as ParsedInstruction).parsed.info;
       return FAST_ACCOUNTS.has(destination);
+    }
+    return false;
+  });
+};
+
+export const isUsingTemporal = (transaction: ParsedTransactionWithMeta) => {
+  const instructions = getAllInstructions(transaction);
+
+  return instructions.some((ix) => {
+    if (
+      'parsed' in ix &&
+      (ix as ParsedInstruction).parsed?.type === 'transfer'
+    ) {
+      const { destination } = (ix as ParsedInstruction).parsed.info;
+      return TEMPORAL_ACCOUNTS.has(destination);
     }
     return false;
   });
