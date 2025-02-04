@@ -21,4 +21,5 @@ export type TradeDetails = {
   tradeTime: string;
   block: number;
   isNextBlockArb?: boolean;
+  isFastArb?: boolean;
 };

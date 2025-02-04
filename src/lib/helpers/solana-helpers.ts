@@ -9,6 +9,7 @@ import { NATIVE_MINT } from '@solana/spl-token';
 import BASE_MINTS from '../constants/base-mints.js';
 import { SMB_PROGRAM_ID } from '../constants/custom-programs.js';
 import { NEXTBLOCK_ACCOUNTS } from '../constants/nextblock-accounts.js';
+import { FAST_ACCOUNTS } from '../constants/fast-accounts.js';
 import { sendTradeNotification } from './discord-helpers.js';
 import { tradeEmbed } from '../../bot/embeds/trade-embed.js';
 import logger from '../utils/logger.js';
@@ -38,6 +39,7 @@ export const monitorTrades = async (
       if (isArb) {
         const arbProfit = calculateArbProfit(transaction);
         const isNextBlockArb = isUsingNextblock(transaction);
+        const isFastArb = isUsingFast(transaction);
         const arbEmbed = tradeEmbed({
           signature,
           solBalance: transaction.meta.postBalances[0] as number,
@@ -53,6 +55,7 @@ export const monitorTrades = async (
           ).toLocaleTimeString(),
           block: transaction.slot,
           isNextBlockArb,
+          isFastArb
         });
 
         await sendTradeNotification(await arbEmbed, channel);
@@ -195,6 +198,21 @@ export const isUsingNextblock = (transaction: ParsedTransactionWithMeta) => {
     ) {
       const { destination } = (ix as ParsedInstruction).parsed.info;
       return NEXTBLOCK_ACCOUNTS.has(destination);
+    }
+    return false;
+  });
+};
+
+export const isUsingFast = (transaction: ParsedTransactionWithMeta) => {
+  const instructions = getAllInstructions(transaction);
+
+  return instructions.some((ix) => {
+    if (
+      'parsed' in ix &&
+      (ix as ParsedInstruction).parsed?.type === 'transfer'
+    ) {
+      const { destination } = (ix as ParsedInstruction).parsed.info;
+      return FAST_ACCOUNTS.has(destination);
     }
     return false;
   });

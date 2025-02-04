@@ -12,7 +12,8 @@ export const tradeEmbed = async ({
   usdcProfit,
   tradeTime,
   block,
-  isNextBlockArb
+  isNextBlockArb,
+  isFastArb
 }: TradeDetails) => {
   return new EmbedBuilder()
     .setTitle('🔮 Arbitrage Trade Detected 🔮')
@@ -26,11 +27,14 @@ export const tradeEmbed = async ({
         value: `\`${(solProfit || 0) < 0.001 ? (solProfit || 0).toFixed(8) : (solProfit || 0).toFixed(4)} SOL | ($${((await fetchUsdProfit(solProfit)) || 0).toFixed(4)})\``
       },
       ...(usdcProfit
-
         ? [{ name: 'USDC Profit', value: `\`${usdcProfit} USDC\`` }]
         : []),
       { name: 'Transaction Signature', value: `\`${signature}\`` },
-      { name: 'Provider', value: `\`${isNextBlockArb ? 'NextBlock' : 'Jito'}\``, inline: true },
+      {
+        name: 'Provider',
+        value: `\`${isNextBlockArb ? 'NextBlock' : isFastArb ? 'Fast' : 'Jito'}\``,
+        inline: true
+      },
       {
         name: 'SOL Balance',
         value: `\`${(Number(solBalance) / LAMPORTS_PER_SOL).toFixed(4)} SOL\``,
