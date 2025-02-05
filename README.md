@@ -42,7 +42,7 @@ pnpm install
 touch .env
 ```
 
-### 4. Run the development bot:
+### 5. Run the development bot:
 
 ```bash
 pnpm dev
