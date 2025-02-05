@@ -57,5 +57,11 @@ export const PROVIDERS: Record<ProviderName, ProviderDetails> = {
       'FASTCKnwwY6iL3CknRgg3Zqir7jeagDDhxSnBQQy5a1C',
       'FASTKL1AamNKrwnvbKwo4PU8434BBdqVrTtugM6oDU71'
     ])
+  },
+  Bloxroute: {
+    accounts: new Set([
+      'HWEoBxYs7ssKuudEjzjmpfJVX7Dvi7wescFsVx2L5yoY',
+      '95cfoy472fcQHaw4tPGBTKpn6ZQnfEPfBgDQx6gcRmRg'
+    ])
   }
 };
