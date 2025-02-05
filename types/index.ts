@@ -14,7 +14,7 @@ export type UserTrackingData = {
 
 export type TradeDetails = {
   signature: string;
-  solBalance: string | number;
+  solBalance: number;
   wSolBalance: number;
   solProfit: number;
   usdcProfit?: number;

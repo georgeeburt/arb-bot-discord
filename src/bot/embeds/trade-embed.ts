@@ -1,7 +1,6 @@
 import { EmbedBuilder } from 'discord.js';
-import fetchUsdProfit from '../../lib/services/fetch-usd-profit.js';
-import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { formatSolscanUrl } from '../../lib/helpers/solana-helpers.js';
+import fetchSolPrice from '../../lib/services/fetch-usd-profit.js';
 import type { TradeDetails } from '../../../types/index.js';
 
 export const tradeEmbed = async ({
@@ -14,6 +13,7 @@ export const tradeEmbed = async ({
   block,
   provider
 }: TradeDetails) => {
+  const solPrice = (await fetchSolPrice()) as number;
   return new EmbedBuilder()
     .setTitle('🔮 Arbitrage Trade Detected 🔮')
     .setColor('#3914B7')
@@ -23,7 +23,7 @@ export const tradeEmbed = async ({
     .addFields(
       {
         name: 'Total Profit',
-        value: `\`${(solProfit || 0) < 0.001 ? (solProfit || 0).toFixed(8) : (solProfit || 0).toFixed(4)} SOL | ($${((await fetchUsdProfit(solProfit)) || 0).toFixed(4)})\``
+        value: `\`${(solProfit || 0) < 0.001 ? (solProfit || 0).toFixed(8) : (solProfit || 0).toFixed(4)} SOL | ($${(solPrice * solProfit).toFixed(4)})\``
       },
       ...(usdcProfit
         ? [{ name: 'USDC Profit', value: `\`${usdcProfit} USDC\`` }]
@@ -36,12 +36,12 @@ export const tradeEmbed = async ({
       },
       {
         name: 'SOL Balance',
-        value: `\`${(Number(solBalance) / LAMPORTS_PER_SOL).toFixed(4)} SOL\``,
+        value: `\`${solBalance.toFixed(4)} SOL | $${(solBalance * solPrice).toFixed(4)}\``,
         inline: true
       },
       {
         name: 'wSOL Balance',
-        value: `\`${wSolBalance.toFixed(4)} wSOL\``,
+        value: `\`${wSolBalance.toFixed(4)} wSOL | ($${(solPrice * wSolBalance).toFixed(4)})\``,
         inline: true
       },
       { name: 'Block', value: `\`${block}\``, inline: true },

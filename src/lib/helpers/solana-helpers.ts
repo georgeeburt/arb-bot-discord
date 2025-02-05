@@ -14,7 +14,7 @@ import { tradeEmbed } from '../../bot/embeds/trade-embed.js';
 import logger from '../utils/logger.js';
 import dotenv from 'dotenv';
 import type { DMChannel, Channel } from 'discord.js';
-import { ProviderName } from '../../../types/index.js';
+import type { ProviderName } from '../../../types/index.js';
 dotenv.config();
 
 export const monitorTrades = async (
@@ -41,7 +41,7 @@ export const monitorTrades = async (
         const provider = getArbProvider(transaction);
         const arbEmbed = tradeEmbed({
           signature,
-          solBalance: transaction.meta.postBalances[0] as number,
+          solBalance: transaction.meta.postBalances[0] / LAMPORTS_PER_SOL,
           wSolBalance: transaction.meta.postTokenBalances?.find(
             (balance) => balance.mint === NATIVE_MINT.toString()
           )?.uiTokenAmount.uiAmount as number,
