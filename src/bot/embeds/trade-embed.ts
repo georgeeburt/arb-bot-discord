@@ -14,6 +14,9 @@ export const tradeEmbed = async ({
   provider
 }: TradeDetails) => {
   const solPrice = (await fetchSolPrice()) as number;
+  const usdSolWalletValue = solBalance * solPrice;
+  const usdWSolWalletValue = wSolBalance * solPrice;
+  const usdProfitValue = solProfit * solPrice;
   return new EmbedBuilder()
     .setTitle('🔮 Arbitrage Trade Detected 🔮')
     .setColor('#3914B7')
@@ -23,7 +26,7 @@ export const tradeEmbed = async ({
     .addFields(
       {
         name: 'Total Profit',
-        value: `\`${(solProfit || 0) < 0.001 ? (solProfit || 0).toFixed(8) : (solProfit || 0).toFixed(4)} SOL | ($${(solPrice * solProfit).toFixed(4)})\``
+        value: `\`${(solProfit || 0) < 0.001 ? (solProfit || 0).toFixed(8) : (solProfit || 0).toFixed(4)} SOL | ($${usdProfitValue < 1 ? usdProfitValue.toFixed(4) : usdProfitValue.toFixed(2)})\``
       },
       ...(usdcProfit
         ? [{ name: 'USDC Profit', value: `\`${usdcProfit} USDC\`` }]
@@ -36,12 +39,12 @@ export const tradeEmbed = async ({
       },
       {
         name: 'SOL Balance',
-        value: `\`${solBalance.toFixed(4)} SOL | $${(solBalance * solPrice).toFixed(4)}\``,
+        value: `\`${solBalance.toFixed(4)} SOL | $${usdSolWalletValue < 1 ? usdSolWalletValue.toFixed(4) : usdSolWalletValue.toFixed(2)}\``,
         inline: true
       },
       {
         name: 'wSOL Balance',
-        value: `\`${wSolBalance.toFixed(4)} wSOL | ($${(solPrice * wSolBalance).toFixed(4)})\``,
+        value: `\`${wSolBalance.toFixed(4)} wSOL | ($${usdWSolWalletValue < 1 ? usdWSolWalletValue.toFixed(4) : usdWSolWalletValue.toFixed(2)})\``,
         inline: true
       },
       { name: 'Block', value: `\`${block}\``, inline: true },
