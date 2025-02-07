@@ -39,4 +39,8 @@ process.on('unhandledRejection', (error) => {
   logger.error(`Unhandled promise rejection: ${error}`);
 });
 
-client.login(process.env.DISCORD_TOKEN);
+client
+  .login(process.env.DISCORD_TOKEN)
+  .catch((error) =>
+    logger.error('Error logging in with discord token:', error)
+  );

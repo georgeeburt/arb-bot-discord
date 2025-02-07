@@ -25,6 +25,11 @@ export type TradeDetails = {
 
 export type ProviderDetails = {
   accounts: Set<string>;
- };
+};
 
-export type ProviderName = 'Fast' | 'Temporal' | 'NextBlock' | 'Jito' | 'Bloxroute';
+export type ProviderName =
+  | 'Fast'
+  | 'Temporal'
+  | 'NextBlock'
+  | 'Jito'
+  | 'Bloxroute';

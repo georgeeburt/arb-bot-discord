@@ -12,9 +12,9 @@ import { PROVIDERS } from '../constants/provider-accounts.js';
 import { sendTradeNotification } from './discord-helpers.js';
 import { tradeEmbed } from '../../bot/embeds/trade-embed.js';
 import logger from '../utils/logger.js';
-import dotenv from 'dotenv';
 import type { DMChannel, Channel } from 'discord.js';
 import type { ProviderName } from '../../../types/index.js';
+import dotenv from 'dotenv';
 dotenv.config();
 
 export const monitorTrades = async (
@@ -130,11 +130,7 @@ export const checkIfArbTrade = (transaction: ParsedTransactionWithMeta) => {
   // Check for DEX interactions
   const isSMBArb = programIds.includes(SMB_PROGRAM_ID);
 
-  if (isSMBArb && transaction.meta.err === null) {
-    return true;
-  }
-
-  return false;
+  return isSMBArb && transaction.meta.err === null;
 };
 
 export const calculateArbProfit = (transaction: ParsedTransactionWithMeta) => {
