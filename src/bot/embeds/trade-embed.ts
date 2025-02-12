@@ -57,6 +57,10 @@ export const tradeEmbed = async ({
         value: `\`${(wSolBalance ?? 0).toFixed(4)} wSOL | ($${(usdWSolWalletValue ?? 0) < 1 ? (usdWSolWalletValue ?? 0).toFixed(4) : (usdWSolWalletValue ?? 0).toFixed(2)})\``,
         inline: true
       },
+      {
+        name: 'SOL Price',
+        value: `\`$${solPrice.toFixed(2)}\``
+      },
       { name: 'Block', value: `\`${block}\``, inline: true },
       { name: 'Time', value: `\`${tradeTime}\``, inline: true }
     )
