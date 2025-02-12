@@ -37,7 +37,7 @@ export const tradeEmbed = async ({
         ? [
             {
               name: 'USDC Profit',
-              value: `\`${usdcProfit} USDC\``
+              value: `\`${(usdcProfit ?? 0) < 1 ? (usdcProfit ?? 0).toFixed(4) : (usdcProfit ?? 0).toFixed(2)} USDC\``
             }
           ]
         : []),

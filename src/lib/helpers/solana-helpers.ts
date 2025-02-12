@@ -16,7 +16,6 @@ import logger from '../utils/logger.js';
 import type { DMChannel, Channel } from 'discord.js';
 import type { ProviderName } from '../../../types/index.js';
 import dotenv from 'dotenv';
-import { is } from 'drizzle-orm';
 dotenv.config();
 
 export const monitorTrades = async (
