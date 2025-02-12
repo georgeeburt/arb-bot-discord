@@ -15,8 +15,9 @@ export type UserTrackingData = {
 export type TradeDetails = {
   signature: string;
   solBalance: number;
+  solPrice: number;
   wSolBalance: number;
-  solProfit: number;
+  solProfit?: number;
   usdcProfit?: number;
   tradeTime: string;
   block: number;
@@ -32,4 +33,9 @@ export type ProviderName =
   | 'Temporal'
   | 'NextBlock'
   | 'Jito'
-  | 'Bloxroute';
+  | 'Jito Static'
+  | 'Jito Dynamic'
+  | 'Bloxroute'
+  | 'RPC';
+
+  export type JitoProvider = 'Jito Static' | 'Jito Dynamic';

@@ -1,5 +1,5 @@
 import { EmbedBuilder } from 'discord.js';
-import { formatSolscanUrl } from '../../lib/helpers/solana-helpers.js';
+import { formatSolscanTransactionUrl } from '../../lib/helpers/solana-helpers.js';
 import fetchSolPrice from '../../lib/services/fetch-usd-profit.js';
 import type { TradeDetails } from '../../../types/index.js';
 
@@ -13,23 +13,33 @@ export const tradeEmbed = async ({
   block,
   provider
 }: TradeDetails) => {
-  const solPrice = (await fetchSolPrice()) as number;
-  const usdSolWalletValue = solBalance * solPrice;
-  const usdWSolWalletValue = wSolBalance * solPrice;
-  const usdProfitValue = solProfit * solPrice;
+  const solPrice = ((await fetchSolPrice()) as number) || 0;
+  const usdSolWalletValue = (solBalance ?? 0) * solPrice;
+  const usdWSolWalletValue = (wSolBalance ?? 0) * solPrice;
+  const usdProfitValue = solProfit ? solProfit * solPrice : 0;
+
   return new EmbedBuilder()
     .setTitle('🔮 Arbitrage Trade Detected 🔮')
     .setColor('#3914B7')
     .setDescription(
-      `[View Transaction on Solscan](${formatSolscanUrl(signature)})`
+      `[View Transaction on Solscan](${formatSolscanTransactionUrl(signature)})`
     )
     .addFields(
-      {
-        name: 'Total Profit',
-        value: `\`${(solProfit || 0) < 0.001 ? (solProfit || 0).toFixed(8) : (solProfit || 0).toFixed(4)} SOL | ($${usdProfitValue < 1 ? usdProfitValue.toFixed(4) : usdProfitValue.toFixed(2)})\``
-      },
+      ...(solProfit
+        ? [
+            {
+              name: 'Total Profit',
+              value: `\`${(solProfit ?? 0) < 0.001 ? (solProfit ?? 0).toFixed(8) : (solProfit ?? 0).toFixed(4)} SOL | ($${usdProfitValue < 1 ? usdProfitValue.toFixed(4) : usdProfitValue.toFixed(2)})\``
+            }
+          ]
+        : []),
       ...(usdcProfit
-        ? [{ name: 'USDC Profit', value: `\`${usdcProfit} USDC\`` }]
+        ? [
+            {
+              name: 'USDC Profit',
+              value: `\`${usdcProfit} USDC\``
+            }
+          ]
         : []),
       { name: 'Transaction Signature', value: `\`${signature}\`` },
       {
@@ -39,12 +49,12 @@ export const tradeEmbed = async ({
       },
       {
         name: 'SOL Balance',
-        value: `\`${solBalance.toFixed(4)} SOL | $${usdSolWalletValue < 1 ? usdSolWalletValue.toFixed(4) : usdSolWalletValue.toFixed(2)}\``,
+        value: `\`${(solBalance ?? 0).toFixed(4)} SOL | $${(usdSolWalletValue ?? 0) < 1 ? (usdSolWalletValue ?? 0).toFixed(4) : (usdSolWalletValue ?? 0).toFixed(2)}\``,
         inline: true
       },
       {
         name: 'wSOL Balance',
-        value: `\`${wSolBalance.toFixed(4)} wSOL | ($${usdWSolWalletValue < 1 ? usdWSolWalletValue.toFixed(4) : usdWSolWalletValue.toFixed(2)})\``,
+        value: `\`${(wSolBalance ?? 0).toFixed(4)} wSOL | ($${(usdWSolWalletValue ?? 0) < 1 ? (usdWSolWalletValue ?? 0).toFixed(4) : (usdWSolWalletValue ?? 0).toFixed(2)})\``,
         inline: true
       },
       { name: 'Block', value: `\`${block}\``, inline: true },

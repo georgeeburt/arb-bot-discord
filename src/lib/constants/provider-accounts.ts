@@ -1,6 +1,9 @@
 import type { ProviderName, ProviderDetails } from '../../../types/index.js';
 
-export const PROVIDERS: Record<ProviderName, ProviderDetails> = {
+export const PROVIDERS: Pick<
+  Record<ProviderName, ProviderDetails>,
+  'Jito' | 'NextBlock' | 'Temporal' | 'Fast' | 'Bloxroute' | 'RPC'
+> = {
   Jito: {
     accounts: new Set([
       '96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5',
@@ -63,5 +66,8 @@ export const PROVIDERS: Record<ProviderName, ProviderDetails> = {
       'HWEoBxYs7ssKuudEjzjmpfJVX7Dvi7wescFsVx2L5yoY',
       '95cfoy472fcQHaw4tPGBTKpn6ZQnfEPfBgDQx6gcRmRg'
     ])
+  },
+  RPC: {
+    accounts: new Set([])
   }
 };

@@ -11,10 +11,12 @@ import { SMB_PROGRAM_ID } from '../constants/custom-programs.js';
 import { PROVIDERS } from '../constants/provider-accounts.js';
 import { sendTradeNotification } from './discord-helpers.js';
 import { tradeEmbed } from '../../bot/embeds/trade-embed.js';
+import fetchSolPrice from '../services/fetch-usd-profit.js';
 import logger from '../utils/logger.js';
 import type { DMChannel, Channel } from 'discord.js';
 import type { ProviderName } from '../../../types/index.js';
 import dotenv from 'dotenv';
+import { is } from 'drizzle-orm';
 dotenv.config();
 
 export const monitorTrades = async (
@@ -37,16 +39,51 @@ export const monitorTrades = async (
 
       const isArb = checkIfArbTrade(transaction);
       if (isArb) {
-        const arbProfit = calculateArbProfit(transaction);
-        const provider = getArbProvider(transaction);
+        let reimbursement: number | undefined;
+        let provider = getArbProvider(transaction);
+        const solPrice = (await fetchSolPrice()) || 0;
+        if (!provider) {
+          const isUsingSeperateTip = await isUsingSeperateTipTransaction(
+            transaction,
+            pubKey
+          );
+
+          if (
+            isUsingSeperateTip.isSeperateTip &&
+            isUsingSeperateTip.tipStrategy == 'Jito Static'
+          ) {
+            provider = 'Jito Static';
+            isUsingSeperateTip.tipAmount
+              ? (reimbursement = isUsingSeperateTip.tipAmount)
+              : null;
+          } else if (
+            isUsingSeperateTip.isSeperateTip &&
+            isUsingSeperateTip.tipStrategy == 'Jito Dynamic'
+          ) {
+            provider = 'Jito Dynamic';
+            isUsingSeperateTip.tipAmount
+              ? (reimbursement = isUsingSeperateTip.tipAmount)
+              : null;
+          } else {
+            provider = 'RPC';
+          }
+        }
+
+        const arbProfit = await calculateArbProfit(
+          transaction,
+          reimbursement,
+          solPrice
+        );
+
         const arbEmbed = tradeEmbed({
           signature,
           solBalance: transaction.meta.postBalances[0] / LAMPORTS_PER_SOL,
+          solPrice,
           wSolBalance: transaction.meta.postTokenBalances?.find(
             (balance) => balance.mint === NATIVE_MINT.toString()
           )?.uiTokenAmount.uiAmount as number,
           solProfit:
-            typeof arbProfit === 'object' ? arbProfit.solProfit : arbProfit,
+            typeof arbProfit === 'object' ? arbProfit.solProfit : undefined,
           usdcProfit:
             typeof arbProfit === 'object' ? arbProfit.usdcProfit : undefined,
           tradeTime: new Date(
@@ -58,7 +95,7 @@ export const monitorTrades = async (
 
         await sendTradeNotification(await arbEmbed, channel);
         processedSignatures.add(signature);
-      }
+      } else return;
     } catch (error) {
       logger.error(`Transaction processing error: ${error}`);
     }
@@ -133,7 +170,11 @@ export const checkIfArbTrade = (transaction: ParsedTransactionWithMeta) => {
   return isSMBArb && transaction.meta.err === null;
 };
 
-export const calculateArbProfit = (transaction: ParsedTransactionWithMeta) => {
+export const calculateArbProfit = async (
+  transaction: ParsedTransactionWithMeta,
+  reimbursement: number | undefined,
+  solPrice: number | undefined
+) => {
   const initialSolBalance = transaction.meta?.preBalances[0] as number;
   const postSolBalance = transaction.meta?.postBalances[0] as number;
 
@@ -151,44 +192,50 @@ export const calculateArbProfit = (transaction: ParsedTransactionWithMeta) => {
   const initialUSDCBalance = Number(
     transaction.meta?.preTokenBalances?.find(
       (balance) => balance.mint === BASE_MINTS.usdc
-    )
+    )?.uiTokenAmount.amount
   );
   const postUSDCBalance = Number(
     transaction.meta?.postTokenBalances?.find(
       (balance) => balance.mint === BASE_MINTS.usdc
-    )
+    )?.uiTokenAmount.amount
   );
 
-  const provider = getArbProvider(transaction);
-
-  if (!initialUSDCBalance || !postUSDCBalance) {
-    return (
-      postSolBalance / LAMPORTS_PER_SOL +
-      postWrappedSolBalance / LAMPORTS_PER_SOL -
-      (initialSolBalance / LAMPORTS_PER_SOL +
-        initialWrappedSolBalance / LAMPORTS_PER_SOL) +
-      (provider === 'Jito' ? 0.001 : 0)
-    );
-  } else {
+  if (
+    initialUSDCBalance === postUSDCBalance ||
+    !initialUSDCBalance ||
+    !postUSDCBalance
+  ) {
     return {
       solProfit:
         postSolBalance / LAMPORTS_PER_SOL +
         postWrappedSolBalance / LAMPORTS_PER_SOL -
         (initialSolBalance / LAMPORTS_PER_SOL +
           initialWrappedSolBalance / LAMPORTS_PER_SOL) +
-        (provider === 'Jito' ? 0.001 : 0),
-      usdcProfit: postUSDCBalance - initialUSDCBalance
+        (reimbursement ? reimbursement : 0),
+      usdcProfit: 0
+    };
+  } else {
+    const usdcDifference = (postUSDCBalance - initialUSDCBalance) / 1_000_000;
+    const solSpent = (initialSolBalance - postSolBalance) / LAMPORTS_PER_SOL;
+    const solSpentInUsd = solPrice ? solSpent * solPrice : 0;
+    const reimbursementInUsd =
+      solPrice && reimbursement ? reimbursement * solPrice : 0;
+
+    return {
+      solProfit: 0,
+      usdcProfit: usdcDifference - solSpentInUsd + reimbursementInUsd
     };
   }
 };
 
 export const getArbProvider = (
   transaction: ParsedTransactionWithMeta
-): ProviderName => {
+): ProviderName | undefined => {
   const instructions = getAllInstructions(transaction);
 
-  for (const provider in PROVIDERS) {
-    const providerAccounts = PROVIDERS[provider as ProviderName].accounts;
+  for (const [provider, details] of Object.entries(PROVIDERS)) {
+    if (provider === 'RPC') return undefined;
+    const providerAccounts = details.accounts;
 
     if (
       instructions.some((ix) => {
@@ -205,9 +252,104 @@ export const getArbProvider = (
       return provider as ProviderName;
     }
   }
-  return 'Jito';
 };
 
-export const formatSolscanUrl = (signature: string) => {
+export const isUsingSeperateTipTransaction = async (
+  transaction: ParsedTransactionWithMeta,
+  trackedWallet: string
+) => {
+  const instructions = getAllInstructions(transaction);
+  const tipInstruction = instructions.find(
+    (ix) =>
+      'parsed' in ix &&
+      (ix as ParsedInstruction).parsed?.type == 'transfer' &&
+      (ix as ParsedInstruction).parsed?.info?.source == trackedWallet
+  ) as ParsedInstruction;
+
+  if (!tipInstruction || !tipInstruction.parsed) {
+    return { isSeperateTip: false };
+  }
+
+  const tipWalletAddress = (tipInstruction as ParsedInstruction).parsed?.info
+    ?.destination;
+
+  const tipWallet = new PublicKey(tipWalletAddress);
+
+  const tipWalletSignatures =
+    await connection.getSignaturesForAddress(tipWallet);
+  if (!tipWalletSignatures.length) return { isSeperateTip: false };
+  const recentTipSignature = tipWalletSignatures[0].signature;
+
+  const recentTipTransaction = await connection.getParsedTransaction(
+    recentTipSignature,
+    { maxSupportedTransactionVersion: 0, commitment: 'finalized' }
+  );
+
+  if (!recentTipTransaction || !recentTipTransaction.meta)
+    return { isSeperateTip: false };
+
+  const tipInstructions = getAllInstructions(recentTipTransaction);
+  const solTransferInstruction = tipInstructions.find(
+    (ix) =>
+      'parsed' in ix &&
+      (ix as ParsedInstruction).parsed?.type == 'transfer' &&
+      (ix as ParsedInstruction).parsed?.info?.source == tipWallet &&
+      (ix as ParsedInstruction).parsed?.info?.destination == trackedWallet
+  );
+  const jitoStaticTipInstruction = tipInstructions.find(
+    (ix) =>
+      'parsed' in ix &&
+      PROVIDERS.Jito.accounts.has(
+        (ix as ParsedInstruction).parsed?.info?.destination
+      ) &&
+      (ix as ParsedInstruction).parsed?.info?.source == tipWallet &&
+      (ix as ParsedInstruction).programId.toString() ==
+        '11111111111111111111111111111111' &&
+      (ix as ParsedInstruction).parsed?.type == 'transfer'
+  );
+  const jitoDynamicTipInstruction = tipInstructions.find(
+    (ix) =>
+      'parsed' in ix &&
+      PROVIDERS.Jito.accounts.has(
+        (ix as ParsedInstruction).parsed?.info?.destination
+      ) &&
+      (ix as ParsedInstruction).parsed?.info?.source == tipWallet &&
+      (ix as ParsedInstruction).programId.toString() ==
+        'TipgrjcESvvR7G4MUDiR1dWgbFqC6fprUPyZeYVDqFS' &&
+      (ix as ParsedInstruction).parsed?.type == 'transfer'
+  );
+  logger.info(
+    `Jito static tip instruction: ${JSON.stringify(jitoStaticTipInstruction)}`
+  );
+  logger.info(
+    `Jito dynamic tip instruction: ${JSON.stringify(jitoDynamicTipInstruction)}`
+  );
+
+  if (!solTransferInstruction) return { isSeperateTip: false };
+  const solSentBack = Number(
+    (solTransferInstruction as ParsedInstruction).parsed?.info?.lamports
+  );
+
+  if (
+    tipWalletSignatures.length == 2 &&
+    (await connection.getBalance(tipWallet)) == 0
+  ) {
+    return {
+      isSeperateTip: true,
+      tipAmount: solSentBack / LAMPORTS_PER_SOL,
+      tipStrategy: jitoStaticTipInstruction
+        ? 'Jito Static'
+        : jitoDynamicTipInstruction
+          ? 'Jito Dynamic'
+          : 'None'
+    };
+  } else {
+    return {
+      isSeperateTip: false
+    };
+  }
+};
+
+export const formatSolscanTransactionUrl = (signature: string) => {
   return `<https://solscan.io/tx/${signature}>`;
 };
