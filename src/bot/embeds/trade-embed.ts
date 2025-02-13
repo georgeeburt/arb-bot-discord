@@ -42,7 +42,6 @@ export const tradeEmbed = async ({
             }
           ]
         : []),
-      { name: 'Transaction Signature', value: `\`${signature}\`` },
       {
         name: 'SOL Balance',
         value: `\`${(solBalance ?? 0).toFixed(4)} SOL | $${(usdSolWalletValue ?? 0) < 1 ? (usdSolWalletValue ?? 0).toFixed(4) : (usdSolWalletValue ?? 0).toFixed(2)}\``,
