@@ -8,6 +8,7 @@ export const tradeEmbed = async ({
   solBalance,
   wSolBalance,
   solProfit,
+  usdcBalance,
   usdcProfit,
   tradeTime,
   block,
@@ -47,11 +48,24 @@ export const tradeEmbed = async ({
         value: `\`${(solBalance ?? 0).toFixed(4)} SOL | $${(usdSolWalletValue ?? 0) < 1 ? (usdSolWalletValue ?? 0).toFixed(4) : (usdSolWalletValue ?? 0).toFixed(2)}\``,
         inline: true
       },
-      {
-        name: 'wSOL Balance',
-        value: `\`${(wSolBalance ?? 0).toFixed(4)} wSOL | ($${(usdWSolWalletValue ?? 0) < 1 ? (usdWSolWalletValue ?? 0).toFixed(4) : (usdWSolWalletValue ?? 0).toFixed(2)})\``,
-        inline: true
-      },
+      ...(wSolBalance > 0
+        ? [
+            {
+              name: 'wSOL Balance',
+              value: `\`${(wSolBalance ?? 0).toFixed(4)} wSOL | ($${(usdWSolWalletValue ?? 0) < 1 ? (usdWSolWalletValue ?? 0).toFixed(4) : (usdWSolWalletValue ?? 0).toFixed(2)})\``,
+              inline: true
+            }
+          ]
+        : []),
+      ...(usdcBalance > 0
+        ? [
+            {
+              name: 'USDC Balance',
+              value: `\`${usdcBalance.toFixed(2)} USDC\``,
+              inline: true
+            }
+          ]
+        : []),
       {
         name: 'Provider',
         value: `\`${provider}\``,
@@ -59,7 +73,8 @@ export const tradeEmbed = async ({
       },
       {
         name: 'SOL Price',
-        value: `\`$${solPrice.toFixed(2)}\``
+        value: `\`$${solPrice.toFixed(2)}\``,
+        inline: true
       },
       { name: 'Block', value: `\`${block}\``, inline: true },
       { name: 'Time', value: `\`${tradeTime}\``, inline: true }

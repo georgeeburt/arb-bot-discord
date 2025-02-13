@@ -18,6 +18,7 @@ export type TradeDetails = {
   solPrice: number;
   wSolBalance: number;
   solProfit?: number;
+  usdcBalance: number;
   usdcProfit?: number;
   tradeTime: string;
   block: number;

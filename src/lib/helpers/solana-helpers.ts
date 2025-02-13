@@ -70,6 +70,9 @@ export const monitorTrades = async (
           )?.uiTokenAmount.uiAmount as number,
           solProfit:
             typeof arbProfit === 'object' ? arbProfit.solProfit : undefined,
+          usdcBalance: transaction.meta.postTokenBalances?.find(
+            (balance) => balance.mint === BASE_MINTS.usdc
+          )?.uiTokenAmount.uiAmount as number,
           usdcProfit:
             typeof arbProfit === 'object' ? arbProfit.usdcProfit : undefined,
           tradeTime: new Date(
