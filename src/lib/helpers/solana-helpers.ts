@@ -47,26 +47,13 @@ export const monitorTrades = async (
             pubKey
           );
 
-          if (
-            isUsingSeperateTip.isSeperateTip &&
-            isUsingSeperateTip.tipStrategy == 'Jito Static'
-          ) {
-            provider = 'Jito Static';
-            isUsingSeperateTip.tipAmount
-              ? (reimbursement = isUsingSeperateTip.tipAmount)
-              : null;
-          } else if (
-            isUsingSeperateTip.isSeperateTip &&
-            isUsingSeperateTip.tipStrategy == 'Jito Dynamic'
-          ) {
-            provider = 'Jito Dynamic';
-            isUsingSeperateTip.tipAmount
-              ? (reimbursement = isUsingSeperateTip.tipAmount)
-              : null;
-          } else {
-            provider = 'RPC';
+          if (isUsingSeperateTip.isSeperateTip) {
+            reimbursement = isUsingSeperateTip.tipAmount;
+            provider = 'Jito';
           }
         }
+
+        provider = provider ?? 'RPC';
 
         const arbProfit = await calculateArbProfit(
           transaction,
@@ -233,16 +220,12 @@ export const getArbProvider = (
   const instructions = getAllInstructions(transaction);
 
   for (const [provider, details] of Object.entries(PROVIDERS)) {
-    if (provider === 'RPC') return undefined;
     const providerAccounts = details.accounts;
 
     if (
       instructions.some((ix) => {
-        if (
-          'parsed' in ix &&
-          (ix as ParsedInstruction).parsed?.type === 'transfer'
-        ) {
-          const { destination } = (ix as ParsedInstruction).parsed.info;
+        if ('parsed' in ix && ix.parsed.type === 'transfer') {
+          const { destination } = ix.parsed.info;
           return providerAccounts.has(destination);
         }
         return false;
@@ -261,16 +244,14 @@ export const isUsingSeperateTipTransaction = async (
   const tipInstruction = instructions.find(
     (ix) =>
       'parsed' in ix &&
-      (ix as ParsedInstruction).parsed?.type == 'transfer' &&
-      (ix as ParsedInstruction).parsed?.info?.source == trackedWallet
+      ix.parsed.type == 'transfer' &&
+      ix.parsed.info.source == trackedWallet
   ) as ParsedInstruction;
 
-  if (!tipInstruction || !tipInstruction.parsed) {
-    return { isSeperateTip: false };
-  }
+  if (!tipInstruction) return { isSeperateTip: false };
 
-  const tipWalletAddress = (tipInstruction as ParsedInstruction).parsed?.info
-    ?.destination;
+  const tipWalletAddress = (tipInstruction as ParsedInstruction).parsed.info
+    .destination;
 
   const tipWallet = new PublicKey(tipWalletAddress);
 
@@ -284,63 +265,31 @@ export const isUsingSeperateTipTransaction = async (
     { maxSupportedTransactionVersion: 0, commitment: 'finalized' }
   );
 
-  if (!recentTipTransaction || !recentTipTransaction.meta)
-    return { isSeperateTip: false };
+  if (!recentTipTransaction) return { isSeperateTip: false };
 
   const tipInstructions = getAllInstructions(recentTipTransaction);
-  const solTransferInstruction = tipInstructions.find(
+
+  const solReimbursementInstruction = tipInstructions.find(
     (ix) =>
       'parsed' in ix &&
-      (ix as ParsedInstruction).parsed?.type == 'transfer' &&
-      (ix as ParsedInstruction).parsed?.info?.source == tipWallet &&
-      (ix as ParsedInstruction).parsed?.info?.destination == trackedWallet
-  );
-  const jitoStaticTipInstruction = tipInstructions.find(
-    (ix) =>
-      'parsed' in ix &&
-      PROVIDERS.Jito.accounts.has(
-        (ix as ParsedInstruction).parsed?.info?.destination
-      ) &&
-      (ix as ParsedInstruction).parsed?.info?.source == tipWallet &&
-      (ix as ParsedInstruction).programId.toString() ==
-        '11111111111111111111111111111111' &&
-      (ix as ParsedInstruction).parsed?.type == 'transfer'
-  );
-  const jitoDynamicTipInstruction = tipInstructions.find(
-    (ix) =>
-      'parsed' in ix &&
-      PROVIDERS.Jito.accounts.has(
-        (ix as ParsedInstruction).parsed?.info?.destination
-      ) &&
-      (ix as ParsedInstruction).parsed?.info?.source == tipWallet &&
-      (ix as ParsedInstruction).programId.toString() ==
-        'TipgrjcESvvR7G4MUDiR1dWgbFqC6fprUPyZeYVDqFS' &&
-      (ix as ParsedInstruction).parsed?.type == 'transfer'
-  );
-  logger.info(
-    `Jito static tip instruction: ${JSON.stringify(jitoStaticTipInstruction)}`
-  );
-  logger.info(
-    `Jito dynamic tip instruction: ${JSON.stringify(jitoDynamicTipInstruction)}`
+      ix.parsed.type == 'transfer' &&
+      ix.parsed.info.source == tipWallet &&
+      ix.parsed.info.destination == trackedWallet
   );
 
-  if (!solTransferInstruction) return { isSeperateTip: false };
+  if (!solReimbursementInstruction) return { isSeperateTip: false };
+
   const solSentBack = Number(
-    (solTransferInstruction as ParsedInstruction).parsed?.info?.lamports
+    (solReimbursementInstruction as ParsedInstruction).parsed.info.lamports
   );
 
   if (
-    tipWalletSignatures.length == 2 &&
+    tipWalletSignatures.length < 4 &&
     (await connection.getBalance(tipWallet)) == 0
   ) {
     return {
       isSeperateTip: true,
-      tipAmount: solSentBack / LAMPORTS_PER_SOL,
-      tipStrategy: jitoStaticTipInstruction
-        ? 'Jito Static'
-        : jitoDynamicTipInstruction
-          ? 'Jito Dynamic'
-          : 'None'
+      tipAmount: solSentBack / LAMPORTS_PER_SOL
     };
   } else {
     return {

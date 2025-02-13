@@ -43,11 +43,6 @@ export const tradeEmbed = async ({
         : []),
       { name: 'Transaction Signature', value: `\`${signature}\`` },
       {
-        name: 'Provider',
-        value: `\`${provider}\``,
-        inline: true
-      },
-      {
         name: 'SOL Balance',
         value: `\`${(solBalance ?? 0).toFixed(4)} SOL | $${(usdSolWalletValue ?? 0) < 1 ? (usdSolWalletValue ?? 0).toFixed(4) : (usdSolWalletValue ?? 0).toFixed(2)}\``,
         inline: true
@@ -55,6 +50,11 @@ export const tradeEmbed = async ({
       {
         name: 'wSOL Balance',
         value: `\`${(wSolBalance ?? 0).toFixed(4)} wSOL | ($${(usdWSolWalletValue ?? 0) < 1 ? (usdWSolWalletValue ?? 0).toFixed(4) : (usdWSolWalletValue ?? 0).toFixed(2)})\``,
+        inline: true
+      },
+      {
+        name: 'Provider',
+        value: `\`${provider}\``,
         inline: true
       },
       {
