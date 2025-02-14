@@ -47,7 +47,7 @@ export const monitorTrades = async (
             pubKey
           );
 
-          if (isUsingSeperateTip.isSeperateTip) {
+          if (isUsingSeperateTip?.isSeperateTip) {
             reimbursement = isUsingSeperateTip.tipAmount;
             provider = 'Jito';
           }
@@ -142,9 +142,7 @@ export const getAllInstructions = (transaction: ParsedTransactionWithMeta) => {
 };
 
 export const checkIfArbTrade = (transaction: ParsedTransactionWithMeta) => {
-  if (!transaction?.meta) {
-    return false;
-  }
+  if (!transaction?.meta) return false;
 
   const allInstructions = getAllInstructions(transaction);
 
@@ -193,7 +191,7 @@ export const calculateArbProfit = async (
     initialUSDCBalance === postUSDCBalance ||
     !initialUSDCBalance ||
     !postUSDCBalance
-  ) {
+  )
     return {
       solProfit:
         postSolBalance / LAMPORTS_PER_SOL +
@@ -203,7 +201,7 @@ export const calculateArbProfit = async (
         (reimbursement ? reimbursement : 0),
       usdcProfit: 0
     };
-  } else {
+  else {
     const usdcDifference = (postUSDCBalance - initialUSDCBalance) / 1_000_000;
     const solSpent = (initialSolBalance - postSolBalance) / LAMPORTS_PER_SOL;
     const solSpentInUsd = solPrice ? solSpent * solPrice : 0;
@@ -233,9 +231,8 @@ export const getArbProvider = (
         }
         return false;
       })
-    ) {
+    )
       return provider as ProviderName;
-    }
   }
 };
 
@@ -255,52 +252,39 @@ export const isUsingSeperateTipTransaction = async (
 
   const tipWalletAddress = (tipInstruction as ParsedInstruction).parsed.info
     .destination;
-
   const tipWallet = new PublicKey(tipWalletAddress);
 
   const tipWalletSignatures =
     await connection.getSignaturesForAddress(tipWallet);
   if (!tipWalletSignatures.length) return { isSeperateTip: false };
-  const recentTipSignature = tipWalletSignatures[0].signature;
 
-  const recentTipTransaction = await connection.getParsedTransaction(
-    recentTipSignature,
-    { maxSupportedTransactionVersion: 0, commitment: 'finalized' }
-  );
+  for (const signature of tipWalletSignatures) {
+    const tipWalletTransaction = await connection.getParsedTransaction(
+      signature.signature,
+      { maxSupportedTransactionVersion: 0, commitment: 'finalized' }
+    );
+    if (!tipWalletTransaction) continue;
 
-  if (!recentTipTransaction) return { isSeperateTip: false };
+    const tipInstructions = getAllInstructions(tipWalletTransaction);
 
-  const tipInstructions = getAllInstructions(recentTipTransaction);
+    const solReimbursementInstruction = tipInstructions.find(
+      (ix) =>
+        'parsed' in ix &&
+        ix.parsed.type == 'transfer' &&
+        ix.parsed.info.destination == trackedWallet
+    );
+    if (!solReimbursementInstruction) continue;
 
-  const solReimbursementInstruction = tipInstructions.find(
-    (ix) =>
-      'parsed' in ix &&
-      ix.parsed.type == 'transfer' &&
-      ix.parsed.info.source == tipWallet &&
-      ix.parsed.info.destination == trackedWallet
-  );
+    const solSentBack = Number(
+      (solReimbursementInstruction as ParsedInstruction).parsed.info.lamports
+    );
 
-  if (!solReimbursementInstruction) return { isSeperateTip: false };
-
-  const solSentBack = Number(
-    (solReimbursementInstruction as ParsedInstruction).parsed.info.lamports
-  );
-
-  if (
-    tipWalletSignatures.length < 4 &&
-    (await connection.getBalance(tipWallet)) == 0
-  ) {
     return {
       isSeperateTip: true,
       tipAmount: solSentBack / LAMPORTS_PER_SOL
     };
-  } else {
-    return {
-      isSeperateTip: false
-    };
   }
 };
 
-export const formatSolscanTransactionUrl = (signature: string) => {
-  return `<https://solscan.io/tx/${signature}>`;
-};
+export const formatSolscanTransactionUrl = (signature: string) =>
+  `<https://solscan.io/tx/${signature}>`;
