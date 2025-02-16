@@ -49,7 +49,7 @@ export const monitorTrades = async (
 
           if (isUsingSeperateTip?.isSeperateTip) {
             reimbursement = isUsingSeperateTip.tipAmount;
-            provider = 'Jito';
+            provider = isUsingSeperateTip.tipMethod as ProviderName;
           }
         }
 
@@ -237,11 +237,11 @@ export const getArbProvider = (
 };
 
 export const isUsingSeperateTipTransaction = async (
-  transaction: ParsedTransactionWithMeta,
+  arbTransaction: ParsedTransactionWithMeta,
   trackedWallet: string
 ) => {
-  const instructions = getAllInstructions(transaction);
-  const tipInstruction = instructions.find(
+  const innerInstructions = getAllInstructions(arbTransaction);
+  const tipInstruction = innerInstructions.find(
     (ix) =>
       'parsed' in ix &&
       ix.parsed.type == 'transfer' &&
@@ -259,31 +259,81 @@ export const isUsingSeperateTipTransaction = async (
   if (!tipWalletSignatures.length) return { isSeperateTip: false };
 
   for (const signature of tipWalletSignatures) {
-    const tipWalletTransaction = await connection.getParsedTransaction(
+    const transaction = await connection.getParsedTransaction(
       signature.signature,
       { maxSupportedTransactionVersion: 0, commitment: 'finalized' }
     );
-    if (!tipWalletTransaction) continue;
+    if (!transaction) continue;
 
-    const tipInstructions = getAllInstructions(tipWalletTransaction);
+    const staticTipInstruction =
+      transaction.transaction.message.instructions.find(
+        (ix) =>
+          ('parsed' in ix &&
+            ix.parsed.type == 'transfer' &&
+            ix.parsed.info.source == tipWalletAddress) &&
+          PROVIDERS.Jito.accounts.has(
+            (ix as ParsedInstruction).parsed?.info.destination
+          )
+      );
 
-    const solReimbursementInstruction = tipInstructions.find(
-      (ix) =>
-        'parsed' in ix &&
-        ix.parsed.type == 'transfer' &&
-        ix.parsed.info.destination == trackedWallet
-    );
-    if (!solReimbursementInstruction) continue;
+    if (staticTipInstruction) {
+      const reimbursementInstruction =
+        transaction.meta?.innerInstructions?.find((innerIx) =>
+          innerIx.instructions?.find(
+            (ix) =>
+              'parsed' in ix &&
+              ix.parsed?.type === 'transfer' &&
+              ix.parsed?.info.source === tipWalletAddress &&
+              ix.parsed?.info.destination === trackedWallet
+          )
+        );
 
-    const solSentBack = Number(
-      (solReimbursementInstruction as ParsedInstruction).parsed.info.lamports
-    );
+      if (reimbursementInstruction) {
+        const solSentBack = reimbursementInstruction.instructions.find((ix) => {
+          if ('parsed' in ix) {
+            return (
+              ix.parsed?.type === 'transfer' &&
+              ix.parsed?.info.source === tipWalletAddress
+            );
+          }
+          return false;
+        }) as ParsedInstruction;
 
-    return {
-      isSeperateTip: true,
-      tipAmount: solSentBack / LAMPORTS_PER_SOL
-    };
+        return {
+          isSeperateTip: true,
+          tipMethod: 'Jito Static',
+          tipAmount: solSentBack.parsed.info.lamports / LAMPORTS_PER_SOL
+        };
+      }
+    } else {
+      const dynamicTipInstruction = transaction.meta?.innerInstructions?.find(
+        (ix) =>
+          'parsed' in ix.instructions &&
+          ix.instructions.find(
+            (innerIx) =>
+              'parsed' in innerIx &&
+              innerIx.parsed?.type === 'transfer' &&
+              innerIx.parsed?.info.source === tipWalletAddress &&
+              innerIx.parsed?.info.destination === trackedWallet
+          )
+      );
+
+      const lamportsReimbursed = dynamicTipInstruction?.instructions?.find(
+        (ix): ix is ParsedInstruction =>
+          'parsed' in ix &&
+          ix.parsed?.type === 'transfer' &&
+          ix.parsed?.info.source === tipWalletAddress
+      )?.parsed?.info?.lamports;
+
+      return {
+        isSeperateTip: true,
+        tipMethod: 'Jito Dynamic',
+        tipAmount: lamportsReimbursed / LAMPORTS_PER_SOL
+      };
+    }
   }
+
+  return { isSeperateTip: false };
 };
 
 export const formatSolscanTransactionUrl = (signature: string) =>
