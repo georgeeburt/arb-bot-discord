@@ -26,7 +26,9 @@ export const tradeEmbed = async ({
     .setDescription(
       `[View Transaction on Solscan](${formatSolscanTransactionUrl(signature)})`
     )
-    .setThumbnail('https://www.imghippo.com/i/ddaZ6071xdI.png')
+    .setThumbnail(
+      isFlashLoan ? 'https://www.imghippo.com/i/ddaZ6071xdI.png' : null
+    )
     .addFields(
       ...(solProfit
         ? [
