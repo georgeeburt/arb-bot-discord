@@ -23,6 +23,7 @@ export type TradeDetails = {
   tradeTime: string;
   block: number;
   provider: ProviderName;
+  isFlashLoan: boolean;
 };
 
 export type ProviderDetails = {
@@ -39,4 +40,4 @@ export type ProviderName =
   | 'Bloxroute'
   | 'RPC';
 
-  export type JitoProvider = 'Jito Static' | 'Jito Dynamic';
+export type JitoProvider = 'Jito Static' | 'Jito Dynamic';

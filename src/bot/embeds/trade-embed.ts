@@ -12,7 +12,8 @@ export const tradeEmbed = async ({
   usdcProfit,
   tradeTime,
   block,
-  provider
+  provider,
+  isFlashLoan
 }: TradeDetails) => {
   const solPrice = ((await fetchSolPrice()) as number) || 0;
   const usdSolWalletValue = (solBalance ?? 0) * solPrice;
@@ -25,6 +26,7 @@ export const tradeEmbed = async ({
     .setDescription(
       `[View Transaction on Solscan](${formatSolscanTransactionUrl(signature)})`
     )
+    .setThumbnail('https://www.imghippo.com/i/ddaZ6071xdI.png')
     .addFields(
       ...(solProfit
         ? [
@@ -78,6 +80,6 @@ export const tradeEmbed = async ({
       { name: 'Block', value: `\`${block}\``, inline: true },
       { name: 'Time', value: `\`${tradeTime}\``, inline: true }
     )
-    .setFooter({ text: '🧱 Made by @0xarii' })
+    .setFooter({ text: '🧱 Built by @0xarii' })
     .setTimestamp();
 };

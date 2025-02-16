@@ -7,7 +7,10 @@ import {
 import connection from '../utils/solana.js';
 import { NATIVE_MINT } from '@solana/spl-token';
 import BASE_MINTS from '../constants/base-mints.js';
-import { SMB_PROGRAM_ID } from '../constants/custom-programs.js';
+import {
+  KAMINO_PROGRAM_ID,
+  SMB_PROGRAM_ID
+} from '../constants/custom-programs.js';
 import { PROVIDERS } from '../constants/provider-accounts.js';
 import { sendTradeNotification } from './discord-helpers.js';
 import { tradeEmbed } from '../../bot/embeds/trade-embed.js';
@@ -61,6 +64,8 @@ export const monitorTrades = async (
           solPrice
         );
 
+        const isFlashLoan = checkIsFlashLoan(transaction);
+
         const arbEmbed = tradeEmbed({
           signature,
           solBalance: transaction.meta.postBalances[0] / LAMPORTS_PER_SOL,
@@ -79,7 +84,8 @@ export const monitorTrades = async (
             transaction.blockTime! * 1000
           ).toLocaleTimeString(),
           block: transaction.slot,
-          provider
+          provider,
+          isFlashLoan
         });
 
         await sendTradeNotification(await arbEmbed, channel);
@@ -236,6 +242,14 @@ export const getArbProvider = (
   }
 };
 
+export const checkIsFlashLoan = (transaction: ParsedTransactionWithMeta) => {
+  const instructions = getAllInstructions(transaction);
+
+  return instructions.some(
+    (ix) => ix.programId.toBase58() == KAMINO_PROGRAM_ID
+  );
+};
+
 export const isUsingSeperateTipTransaction = async (
   arbTransaction: ParsedTransactionWithMeta,
   trackedWallet: string
@@ -268,9 +282,9 @@ export const isUsingSeperateTipTransaction = async (
     const staticTipInstruction =
       transaction.transaction.message.instructions.find(
         (ix) =>
-          ('parsed' in ix &&
-            ix.parsed.type == 'transfer' &&
-            ix.parsed.info.source == tipWalletAddress) &&
+          'parsed' in ix &&
+          ix.parsed.type == 'transfer' &&
+          ix.parsed.info.source == tipWalletAddress &&
           PROVIDERS.Jito.accounts.has(
             (ix as ParsedInstruction).parsed?.info.destination
           )
