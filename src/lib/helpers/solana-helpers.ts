@@ -9,6 +9,7 @@ import { NATIVE_MINT } from '@solana/spl-token';
 import BASE_MINTS from '../constants/base-mints.js';
 import {
   KAMINO_PROGRAM_ID,
+  MEMO_PROGRAM_ID,
   SMB_PROGRAM_ID
 } from '../constants/custom-programs.js';
 import { PROVIDERS } from '../constants/provider-accounts.js';
@@ -66,6 +67,8 @@ export const monitorTrades = async (
 
         const isFlashLoan = checkIsFlashLoan(transaction);
 
+        const memo = checkMemo(transaction);
+
         const arbEmbed = tradeEmbed({
           signature,
           solBalance: transaction.meta.postBalances[0] / LAMPORTS_PER_SOL,
@@ -85,7 +88,8 @@ export const monitorTrades = async (
           ).toLocaleTimeString(),
           block: transaction.slot,
           provider,
-          isFlashLoan
+          isFlashLoan,
+          memo
         });
 
         await sendTradeNotification(await arbEmbed, channel);
@@ -248,6 +252,18 @@ export const checkIsFlashLoan = (transaction: ParsedTransactionWithMeta) => {
   return instructions.some(
     (ix) => ix.programId.toBase58() == KAMINO_PROGRAM_ID
   );
+};
+
+export const checkMemo = (transaction: ParsedTransactionWithMeta) => {
+  const instructions = getAllInstructions(transaction);
+
+  const memoInstruction = instructions.find(
+    (ix) => 'parsed' in ix && ix.programId.toBase58() == MEMO_PROGRAM_ID
+  ) as ParsedInstruction;
+
+  if (memoInstruction) {
+    return memoInstruction.parsed;
+  }
 };
 
 export const isUsingSeperateTipTransaction = async (

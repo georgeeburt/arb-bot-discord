@@ -24,6 +24,7 @@ export type TradeDetails = {
   block: number;
   provider: ProviderName;
   isFlashLoan: boolean;
+  memo?: string;
 };
 
 export type ProviderDetails = {

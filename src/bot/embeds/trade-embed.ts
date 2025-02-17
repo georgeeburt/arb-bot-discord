@@ -13,7 +13,8 @@ export const tradeEmbed = async ({
   tradeTime,
   block,
   provider,
-  isFlashLoan
+  isFlashLoan,
+  memo
 }: TradeDetails) => {
   const solPrice = ((await fetchSolPrice()) as number) || 0;
   const usdSolWalletValue = (solBalance ?? 0) * solPrice;
@@ -69,6 +70,7 @@ export const tradeEmbed = async ({
             }
           ]
         : []),
+      ...(memo ? [{ name: 'Memo', value: `\`${memo}\``, inline: true }] : []),
       {
         name: 'Provider',
         value: `\`${provider}\``,
