@@ -53,12 +53,13 @@ export const monitorTrades = async (
 
           if (isUsingSeperateTip?.isSeperateTip) {
             reimbursement = isUsingSeperateTip.tipAmount;
-            provider = isUsingSeperateTip.tipMethod as ProviderName;
+            provider = 'Jito';
           }
         }
 
         provider = provider ?? 'RPC';
 
+        logger.info(`Reimbursement before calc: ${reimbursement} SOL`);
         const arbProfit = await calculateArbProfit(
           transaction,
           reimbursement,
@@ -271,99 +272,56 @@ export const isUsingSeperateTipTransaction = async (
   trackedWallet: string
 ) => {
   const innerInstructions = getAllInstructions(arbTransaction);
-  const tipInstruction = innerInstructions.find(
+  const tipInstructions = innerInstructions.filter(
     (ix) =>
       'parsed' in ix &&
       ix.parsed.type == 'transfer' &&
       ix.parsed.info.source == trackedWallet
-  ) as ParsedInstruction;
+  );
 
-  if (!tipInstruction) return { isSeperateTip: false };
+  if (!tipInstructions.length) return { isSeperateTip: false };
 
-  const tipWalletAddress = (tipInstruction as ParsedInstruction).parsed.info
-    .destination;
-  const tipWallet = new PublicKey(tipWalletAddress);
+  for (const tipInstruction of tipInstructions) {
+    const tipWalletAddress = (tipInstruction as ParsedInstruction).parsed.info
+      .destination;
+    const tipWallet = new PublicKey(tipWalletAddress);
 
-  const tipWalletSignatures =
-    await connection.getSignaturesForAddress(tipWallet);
-  if (!tipWalletSignatures.length) return { isSeperateTip: false };
+    const tipWalletSignatures =
+      await connection.getSignaturesForAddress(tipWallet);
 
-  for (const signature of tipWalletSignatures) {
-    const transaction = await connection.getParsedTransaction(
-      signature.signature,
-      { maxSupportedTransactionVersion: 0, commitment: 'finalized' }
-    );
-    if (!transaction) continue;
+    if (!tipWalletSignatures.length) continue;
 
-    const staticTipInstruction =
-      transaction.transaction.message.instructions.find(
+    for (const signature of tipWalletSignatures) {
+      if (signature.err || !signature.signature) continue;
+
+      const transaction = await connection.getParsedTransaction(
+        signature.signature,
+        { maxSupportedTransactionVersion: 0, commitment: 'finalized' }
+      );
+      if (!transaction) continue;
+
+      const instructions = getAllInstructions(transaction);
+
+      const tip = instructions.find(
         (ix) =>
           'parsed' in ix &&
           ix.parsed.type == 'transfer' &&
           ix.parsed.info.source == tipWalletAddress &&
-          PROVIDERS.Jito.accounts.has(
-            (ix as ParsedInstruction).parsed?.info.destination
-          )
+          ix.parsed.info.destination == trackedWallet
       );
 
-    if (staticTipInstruction) {
-      const reimbursementInstruction =
-        transaction.meta?.innerInstructions?.find((innerIx) =>
-          innerIx.instructions?.find(
-            (ix) =>
-              'parsed' in ix &&
-              ix.parsed?.type === 'transfer' &&
-              ix.parsed?.info.source === tipWalletAddress &&
-              ix.parsed?.info.destination === trackedWallet
-          )
+      if (tip) {
+        const tipAmount = Number(
+          (tipInstruction as ParsedInstruction).parsed.info.lamports
         );
-
-      if (reimbursementInstruction) {
-        const solSentBack = reimbursementInstruction.instructions.find((ix) => {
-          if ('parsed' in ix) {
-            return (
-              ix.parsed?.type === 'transfer' &&
-              ix.parsed?.info.source === tipWalletAddress
-            );
-          }
-          return false;
-        }) as ParsedInstruction;
 
         return {
           isSeperateTip: true,
-          tipMethod: 'Jito Static',
-          tipAmount: solSentBack.parsed.info.lamports / LAMPORTS_PER_SOL
+          tipAmount: tipAmount / LAMPORTS_PER_SOL
         };
       }
-    } else {
-      const dynamicTipInstruction = transaction.meta?.innerInstructions?.find(
-        (ix) =>
-          'parsed' in ix.instructions &&
-          ix.instructions.find(
-            (innerIx) =>
-              'parsed' in innerIx &&
-              innerIx.parsed?.type === 'transfer' &&
-              innerIx.parsed?.info.source === tipWalletAddress &&
-              innerIx.parsed?.info.destination === trackedWallet
-          )
-      );
-
-      const lamportsReimbursed = dynamicTipInstruction?.instructions?.find(
-        (ix): ix is ParsedInstruction =>
-          'parsed' in ix &&
-          ix.parsed?.type === 'transfer' &&
-          ix.parsed?.info.source === tipWalletAddress
-      )?.parsed?.info?.lamports;
-
-      return {
-        isSeperateTip: true,
-        tipMethod: 'Jito Dynamic',
-        tipAmount: lamportsReimbursed / LAMPORTS_PER_SOL
-      };
     }
   }
-
-  return { isSeperateTip: false };
 };
 
 export const formatSolscanTransactionUrl = (signature: string) =>
