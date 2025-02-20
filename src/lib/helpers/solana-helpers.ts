@@ -4,7 +4,7 @@ import {
   ParsedInstruction,
   LAMPORTS_PER_SOL
 } from '@solana/web3.js';
-import connection from '../utils/solana.js';
+import connection from '../services/solana.js';
 import { NATIVE_MINT } from '@solana/spl-token';
 import BASE_MINTS from '../constants/base-mints.js';
 import {

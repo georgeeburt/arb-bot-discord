@@ -1,5 +1,5 @@
 import db from '../drizzle/drizzle-service.js';
-import connection from '../utils/solana.js';
+import connection from '../services/solana.js';
 import { client } from '../../bot/bot.js';
 import { and, eq } from 'drizzle-orm';
 import { subscriptions, websocketConnections } from '../drizzle/schema.js';
