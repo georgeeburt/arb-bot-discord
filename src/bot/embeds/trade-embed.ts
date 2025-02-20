@@ -1,6 +1,6 @@
 import { EmbedBuilder } from 'discord.js';
 import { formatSolscanTransactionUrl } from '../../lib/helpers/solana-helpers.js';
-import fetchSolPrice from '../../lib/services/fetch-usd-profit.js';
+import fetchSolPrice from '../../lib/services/fetch-sol-price.js';
 import type { TradeDetails } from '../../../types/index.js';
 
 export const tradeEmbed = async ({

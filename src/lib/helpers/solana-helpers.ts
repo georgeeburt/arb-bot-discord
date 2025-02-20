@@ -15,7 +15,7 @@ import {
 import { PROVIDERS } from '../constants/provider-accounts.js';
 import { sendTradeNotification } from './discord-helpers.js';
 import { tradeEmbed } from '../../bot/embeds/trade-embed.js';
-import fetchSolPrice from '../services/fetch-usd-profit.js';
+import fetchSolPrice from '../services/fetch-sol-price.js';
 import logger from '../utils/logger.js';
 import type { DMChannel, Channel } from 'discord.js';
 import type { ProviderName } from '../../../types/index.js';
@@ -59,7 +59,6 @@ export const monitorTrades = async (
 
         provider = provider ?? 'RPC';
 
-        logger.info(`Reimbursement before calc: ${reimbursement} SOL`);
         const arbProfit = await calculateArbProfit(
           transaction,
           reimbursement,
@@ -209,7 +208,7 @@ export const calculateArbProfit = async (
         postWrappedSolBalance / LAMPORTS_PER_SOL -
         (initialSolBalance / LAMPORTS_PER_SOL +
           initialWrappedSolBalance / LAMPORTS_PER_SOL) +
-        (reimbursement ? reimbursement : 0),
+        (reimbursement ? reimbursement : 0.000995),
       usdcProfit: 0
     };
   else {
@@ -217,7 +216,9 @@ export const calculateArbProfit = async (
     const solSpent = (initialSolBalance - postSolBalance) / LAMPORTS_PER_SOL;
     const solSpentInUsd = solPrice ? solSpent * solPrice : 0;
     const reimbursementInUsd =
-      solPrice && reimbursement ? reimbursement * solPrice : 0;
+      solPrice !== undefined && reimbursement !== undefined
+        ? reimbursement * solPrice
+        : 0.000995 * (solPrice ?? 1);
 
     return {
       solProfit: 0,
